@@ -1,0 +1,233 @@
+import { Product, ProductCategory, Discount, Language } from './types';
+
+export const PRODUCTS: Product[] = [
+  {
+    id: '1',
+    sku: 'EL-3PH-001',
+    name: 'SmartMeter Pro 3-Phase',
+    category: ProductCategory.ELECTRIC,
+    price: 450,
+    currency: 'RON',
+    stockStatus: 'in_stock',
+    image: 'https://picsum.photos/400/400?random=1',
+    shortDescription: {
+      ro: 'Contor electric trifazat industrial cu precizie clasa B.',
+      en: 'Industrial 3-phase electric meter with Class B accuracy.'
+    },
+    fullDescription: {
+      ro: 'Acest contor inteligent trifazat este ideal pentru aplicații industriale și comerciale. Dispune de comunicație Modbus RTU integrată și suportă măsurarea energiei active și reactive.',
+      en: 'This smart 3-phase meter is ideal for industrial and commercial applications. Features integrated Modbus RTU communication and supports active and reactive energy measurement.'
+    },
+    specs: {
+      'Voltaj': '3x230/400V',
+      'Curent': '5(80)A',
+      'Frecvență': '50Hz',
+      'Precizie': 'Clasa B (1%)',
+      'Display': 'LCD Backlit'
+    },
+    protocol: ['Modbus RTU', 'RS485']
+  },
+  {
+    id: '2',
+    sku: 'WT-DN20-002',
+    name: 'AquaSmart Ultrasonic DN20',
+    category: ProductCategory.WATER,
+    price: 320,
+    currency: 'RON',
+    stockStatus: 'in_stock',
+    image: 'https://picsum.photos/400/400?random=2',
+    shortDescription: {
+      ro: 'Apometru ultrasonic inteligent pentru apă rece.',
+      en: 'Smart ultrasonic water meter for cold water.'
+    },
+    fullDescription: {
+      ro: 'Tehnologie ultrasonică pentru o precizie ridicată și o durată de viață lungă a bateriei (până la 10 ani). Nu are piese în mișcare.',
+      en: 'Ultrasonic technology for high accuracy and long battery life (up to 10 years). No moving parts.'
+    },
+    specs: {
+      'Diametru': 'DN20',
+      'Debit Nominal (Q3)': '2.5 m3/h',
+      'Temp. Max': '50°C',
+      'Presiune': 'PN16'
+    },
+    protocol: ['M-Bus', 'Wireless M-Bus']
+  },
+  {
+    id: '3',
+    sku: 'GS-G4-003',
+    name: 'GasFlux G4 Smart',
+    category: ProductCategory.GAS,
+    price: 850,
+    currency: 'RON',
+    stockStatus: 'on_request',
+    image: 'https://picsum.photos/400/400?random=3',
+    shortDescription: {
+      ro: 'Contor de gaz cu diafragmă și modul de comunicație.',
+      en: 'Diaphragm gas meter with communication module.'
+    },
+    fullDescription: {
+      ro: 'Contor volumetric de gaz cu corecție de temperatură. Carcasă din oțel galvanizat rezistentă la coroziune.',
+      en: 'Volumetric gas meter with temperature correction. Corrosion-resistant galvanized steel casing.'
+    },
+    specs: {
+      'Tip': 'G4',
+      'Debit Max': '6 m3/h',
+      'Presiune Max': '0.5 bar',
+      'Conexiune': '1-1/4"'
+    },
+    protocol: ['Pulse Output', 'NB-IoT']
+  },
+  {
+    id: '4',
+    sku: 'TH-HEAT-004',
+    name: 'ThermoCompact Integral',
+    category: ProductCategory.THERMAL,
+    price: 680,
+    currency: 'RON',
+    stockStatus: 'in_stock',
+    image: 'https://picsum.photos/400/400?random=4',
+    shortDescription: {
+      ro: 'Contor de energie termică compact.',
+      en: 'Compact thermal energy meter.'
+    },
+    fullDescription: {
+      ro: 'Unitate compactă pentru măsurarea energiei termice în sisteme de încălzire și răcire. Include senzori de temperatură Pt500.',
+      en: 'Compact unit for measuring thermal energy in heating and cooling systems. Includes Pt500 temperature sensors.'
+    },
+    specs: {
+      'Debit Nominal': '1.5 m3/h',
+      'Montaj': 'Retur',
+      'Baterie': '10 ani',
+      'Display': 'Detasabil'
+    },
+    protocol: ['M-Bus']
+  }
+];
+
+export const DISCOUNTS: Discount[] = [
+  { code: 'B2B10', type: 'percent', value: 10 },
+  { code: 'WELCOME50', type: 'fixed', value: 50 }
+];
+
+export const TRANSLATIONS: Record<Language, Record<string, string>> = {
+  ro: {
+    'nav.home': 'Acasă',
+    'nav.shop': 'Magazin',
+    'nav.about': 'Despre Noi',
+    'nav.contact': 'Contact',
+    'nav.cart': 'Coș',
+    'nav.admin': 'Admin',
+    'hero.title': 'Soluții de Contorizare Inteligentă B2B',
+    'hero.subtitle': 'Furnizăm echipamente de măsurare precise pentru electricitate, apă, gaz și energie termică.',
+    'hero.cta': 'Vezi Produsele',
+    'shop.filters': 'Filtre',
+    'shop.category': 'Categorie',
+    'shop.search': 'Caută produse...',
+    'shop.price_asc': 'Preț: Crescător',
+    'shop.price_desc': 'Preț: Descrescător',
+    'shop.add_to_cart': 'Adaugă în Coș',
+    'shop.details': 'Detalii',
+    'product.specs': 'Specificații Tehnice',
+    'product.description': 'Descriere',
+    'product.datasheet': 'Fișa Tehnică',
+    'product.download': 'Descarcă PDF',
+    'product.sku': 'Cod produs',
+    'product.category': 'Categorie',
+    'product.stock_in': 'În stoc',
+    'product.stock_request': 'La comandă',
+    'cart.title': 'Coșul Tău',
+    'cart.empty': 'Coșul este gol.',
+    'cart.product': 'Produs',
+    'cart.price': 'Preț',
+    'cart.quantity': 'Cantitate',
+    'cart.total': 'Total',
+    'cart.subtotal': 'Subtotal',
+    'cart.discount': 'Discount',
+    'cart.final_total': 'Total Final',
+    'cart.checkout': 'Finalizează Comanda',
+    'cart.continue': 'Continuă Cumpărăturile',
+    'cart.code_placeholder': 'Cod reducere',
+    'cart.apply': 'Aplică',
+    'checkout.title': 'Finalizare Comandă',
+    'checkout.contact': 'Date de Contact',
+    'checkout.billing': 'Facturare',
+    'checkout.shipping': 'Livrare',
+    'checkout.same_address': 'Livrarea la aceeași adresă',
+    'checkout.notes': 'Notițe Comandă',
+    'checkout.send': 'Trimite Comanda',
+    'checkout.sending': 'Se trimite...',
+    'checkout.success_title': 'Comandă Trimisă!',
+    'checkout.success_msg': 'Comanda a fost trimisă cu succes. Veți fi contactat în curând pe email pentru confirmare și detalii de plată.',
+    'common.email': 'Email',
+    'common.name': 'Nume',
+    'common.company': 'Companie',
+    'common.address': 'Adresă',
+    'common.city': 'Oraș',
+    'common.postal': 'Cod Poștal',
+    'common.country': 'Țară',
+    'common.phone': 'Telefon',
+    'footer.rights': 'Toate drepturile rezervate.',
+    'footer.terms': 'Termeni și Condiții',
+    'footer.privacy': 'Politica de Confidențialitate',
+  },
+  en: {
+    'nav.home': 'Home',
+    'nav.shop': 'Shop',
+    'nav.about': 'About Us',
+    'nav.contact': 'Contact',
+    'nav.cart': 'Cart',
+    'nav.admin': 'Admin',
+    'hero.title': 'Smart B2B Metering Solutions',
+    'hero.subtitle': 'We supply precise measuring equipment for electricity, water, gas, and thermal energy.',
+    'hero.cta': 'View Products',
+    'shop.filters': 'Filters',
+    'shop.category': 'Category',
+    'shop.search': 'Search products...',
+    'shop.price_asc': 'Price: Low to High',
+    'shop.price_desc': 'Price: High to Low',
+    'shop.add_to_cart': 'Add to Cart',
+    'shop.details': 'Details',
+    'product.specs': 'Technical Specifications',
+    'product.description': 'Description',
+    'product.datasheet': 'Datasheet',
+    'product.download': 'Download PDF',
+    'product.sku': 'SKU',
+    'product.category': 'Category',
+    'product.stock_in': 'In Stock',
+    'product.stock_request': 'On Request',
+    'cart.title': 'Your Cart',
+    'cart.empty': 'Your cart is empty.',
+    'cart.product': 'Product',
+    'cart.price': 'Price',
+    'cart.quantity': 'Quantity',
+    'cart.total': 'Total',
+    'cart.subtotal': 'Subtotal',
+    'cart.discount': 'Discount',
+    'cart.final_total': 'Final Total',
+    'cart.checkout': 'Checkout',
+    'cart.continue': 'Continue Shopping',
+    'cart.code_placeholder': 'Discount code',
+    'cart.apply': 'Apply',
+    'checkout.title': 'Checkout',
+    'checkout.contact': 'Contact Details',
+    'checkout.billing': 'Billing Details',
+    'checkout.shipping': 'Shipping Details',
+    'checkout.same_address': 'Ship to billing address',
+    'checkout.notes': 'Order Notes',
+    'checkout.send': 'Send Order',
+    'checkout.sending': 'Sending...',
+    'checkout.success_title': 'Order Sent!',
+    'checkout.success_msg': 'Your order has been sent successfully. You will be contacted shortly via email for confirmation and payment details.',
+    'common.email': 'Email',
+    'common.name': 'Name',
+    'common.company': 'Company',
+    'common.address': 'Address',
+    'common.city': 'City',
+    'common.postal': 'Postal Code',
+    'common.country': 'Country',
+    'common.phone': 'Phone',
+    'footer.rights': 'All rights reserved.',
+    'footer.terms': 'Terms & Conditions',
+    'footer.privacy': 'Privacy Policy',
+  }
+};

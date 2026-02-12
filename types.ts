@@ -1,0 +1,66 @@
+export type Language = 'ro' | 'en';
+
+export enum ProductCategory {
+  ELECTRIC = 'ELECTRIC',
+  WATER = 'WATER',
+  GAS = 'GAS',
+  THERMAL = 'THERMAL',
+}
+
+export interface Product {
+  id: string;
+  sku: string;
+  name: string;
+  shortDescription: {
+    ro: string;
+    en: string;
+  };
+  fullDescription: {
+    ro: string;
+    en: string;
+  };
+  category: ProductCategory;
+  price: number;
+  currency: string;
+  stockStatus: 'in_stock' | 'on_request';
+  image: string;
+  specs: Record<string, string>;
+  protocol?: string[]; // e.g., Modbus, M-Bus
+  datasheetUrl?: string;
+}
+
+export interface CartItem extends Product {
+  quantity: number;
+}
+
+export interface Discount {
+  code: string;
+  type: 'percent' | 'fixed';
+  value: number;
+  expirationDate?: string;
+}
+
+export interface BillingDetails {
+  name: string;
+  company: string;
+  address1: string;
+  address2: string;
+  city: string;
+  postcode: string;
+  country: string;
+  phone: string;
+  email: string; // Contact email is top level, but kept here for type simplicity in form
+  notes?: string;
+}
+
+export interface OrderData {
+  customerEmail: string;
+  notes: string;
+  billing: BillingDetails;
+  shipping: BillingDetails;
+  items: CartItem[];
+  subtotal: number;
+  discountCode?: string;
+  discountValue: number;
+  total: number;
+}

@@ -14,6 +14,8 @@ app.use(express.static(path.join(__dirname, 'dist')));
 app.post('/api/trimite-comanda', async (req, res) => {
     const d = req.body;
     
+    // Configurare transportator email
+    // Adăugat tls: { rejectUnauthorized: false } pentru a preveni erorile de certificat pe hosting shared
     let transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: 465,
@@ -21,6 +23,9 @@ app.post('/api/trimite-comanda', async (req, res) => {
         auth: { 
             user: process.env.SMTP_USER, 
             pass: process.env.SMTP_PASS 
+        },
+        tls: {
+            rejectUnauthorized: false
         }
     });
 
@@ -29,15 +34,16 @@ app.post('/api/trimite-comanda', async (req, res) => {
         to: 'adrian.geanta@smartmeter.ro',
         subject: `Comandă Nouă B2B - ${d.billing_name || 'Client'}`,
         text: `Email contact: ${d.email}\nNotițe: ${d.order_notes}\nTOTAL: ${d.final_total} RON`
-        // Poți extinde formatul textului conform cerințelor tale ulterioare
     };
 
     try {
+        await transporter.verify(); // Verifică conexiunea înainte de trimitere
         await transporter.sendMail(mailOptions);
         res.status(200).json({ success: true, message: 'Comanda a fost trimisă!' });
     } catch (err) {
         console.error('Eroare SMTP:', err);
-        res.status(500).json({ success: false, error: 'Eroare la trimiterea email-ului.' });
+        // Trimitem mesajul de eroare specific către frontend pentru debugging
+        res.status(500).json({ success: false, error: err.message || 'Eroare necunoscută la serverul de mail' });
     }
 });
 

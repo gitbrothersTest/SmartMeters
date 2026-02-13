@@ -81,7 +81,7 @@ Livrare: ${finalShipping.name} (${finalShipping.company}), ${finalShipping.city}
 
     const payload = {
         email: contactEmail,
-        order_notes: emailBody, // Sending the full details in the notes field for simplicity, or structure it as needed by server.js
+        order_notes: emailBody, // Sending the full details in the notes field for simplicity
         billing_name: billing.name,
         final_total: total.toFixed(2)
     };
@@ -95,15 +95,17 @@ Livrare: ${finalShipping.name} (${finalShipping.company}), ${finalShipping.city}
             body: JSON.stringify(payload),
         });
 
+        const data = await response.json();
+
         if (response.ok) {
              setSubmitted(true);
              clearCart();
         } else {
-             throw new Error('Server returned error');
+             throw new Error(data.error || 'Server returned error');
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error("Order submission failed", error);
-        alert("A apărut o eroare la trimiterea comenzii. Vă rugăm verificați conexiunea sau încercați mai târziu.");
+        alert(`Eroare la trimitere: ${error.message || "Verificați conexiunea."}`);
     } finally {
         setIsSubmitting(false);
     }

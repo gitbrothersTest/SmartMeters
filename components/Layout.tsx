@@ -21,8 +21,8 @@ const Layout: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col font-sans">
-      {/* Sticky Wrapper for Top Bar and Header */}
-      <div className="sticky top-0 z-50 w-full">
+      {/* Sticky Wrapper for Top Bar and Header - Added bg-white to prevent see-through */}
+      <div className="sticky top-0 z-50 w-full bg-white shadow-md">
         {/* Top Bar - Very Corporate */}
         <div className="bg-primary text-gray-300 text-xs py-2 px-4 md:px-8 flex justify-between items-center">
           <div>
@@ -35,13 +35,13 @@ const Layout: React.FC = () => {
             </Link>
             <div className="flex items-center gap-1 cursor-pointer hover:text-white" onClick={() => setLanguage(language === 'ro' ? 'en' : 'ro')}>
               <Globe size={12} />
-              <span className="uppercase">{language}</span>
+              <span className="uppercase font-bold">{language}</span>
             </div>
           </div>
         </div>
 
         {/* Main Header */}
-        <header className="bg-white shadow-sm">
+        <header className="bg-white">
           <div className="container mx-auto px-4 py-4 flex justify-between items-center">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2">

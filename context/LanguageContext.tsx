@@ -12,9 +12,12 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [language, setLanguage] = useState<Language>(() => {
-    // Attempt to recover language from localStorage, default to 'ro'
     const saved = localStorage.getItem('app_language');
-    return (saved === 'ro' || saved === 'en') ? saved : 'ro';
+    // Strict check: if saved is not exactly 'ro' or 'en', default to 'ro'
+    if (saved === 'ro' || saved === 'en') {
+      return saved;
+    }
+    return 'ro';
   });
 
   useEffect(() => {
@@ -22,11 +25,15 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, [language]);
 
   const t = (key: string): string => {
-    if (!TRANSLATIONS[language]) {
-        console.warn(`Missing translation set for language: ${language}`);
+    // Safety check: ensure language exists in TRANSLATIONS
+    const langSet = TRANSLATIONS[language] || TRANSLATIONS['ro'];
+    
+    if (!langSet) {
+        console.warn(`Missing translations completely.`);
         return key;
     }
-    return TRANSLATIONS[language][key] || key;
+    
+    return langSet[key] || key;
   };
 
   return (

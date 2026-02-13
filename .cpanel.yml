@@ -2,6 +2,6 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/smartmet/SmartMetersWebsiteCode/
-    - /bin/cp -R dist $DEPLOYPATH
-    - /bin/cp server.js $DEPLOYPATH
-    - /bin/cp package.json $DEPLOYPATH
+    - /bin/cp -Rf dist $DEPLOYPATH
+    - /bin/cp -f server.js $DEPLOYPATH
+    - /bin/cp -f package.json $DEPLOYPATH

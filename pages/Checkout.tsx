@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
@@ -25,6 +26,18 @@ const Checkout: React.FC = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  // --- CLIENT TRACKING LOGIC ---
+  const getClientToken = () => {
+    let token = localStorage.getItem('sm_client_token');
+    if (!token) {
+        // Generate a simple UUID-like string if not present
+        token = 'xxxx-xxxx-xxxx-xxxx'.replace(/[x]/g, () => (Math.random() * 16 | 0).toString(16));
+        localStorage.setItem('sm_client_token', token);
+    }
+    return token;
+  };
+  // -----------------------------
 
   useEffect(() => {
     if (items.length === 0 && !submitted) {
@@ -56,8 +69,9 @@ const Checkout: React.FC = () => {
     setIsSubmitting(true);
 
     const finalShipping = shippingSame ? billing : shipping;
+    const clientToken = getClientToken();
 
-    // Payload cu date structurate pentru generare HTML pe server
+    // Payload cu date structurate
     const payload = {
         email: contactEmail,
         order_notes: orderNotes,
@@ -69,7 +83,8 @@ const Checkout: React.FC = () => {
             discount: discountValue.toFixed(2),
             discountCode: discountCode,
             total: total.toFixed(2)
-        }
+        },
+        clientToken: clientToken // Sending token for history tracking
     };
 
     try {

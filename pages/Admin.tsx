@@ -14,6 +14,7 @@ const Admin: React.FC = () => {
     id: '',
     sku: '',
     name: '',
+    manufacturer: '',
     category: ProductCategory.ELECTRIC,
     price: 0,
     currency: 'RON',
@@ -75,6 +76,7 @@ const Admin: React.FC = () => {
               <h3 className="font-bold mb-4">New Product</h3>
               <div className="grid grid-cols-2 gap-4 mb-4">
                   <input placeholder="Name" className="border p-2 rounded" value={newProductForm.name} onChange={e => setNewProductForm({...newProductForm, name: e.target.value})} />
+                  <input placeholder="Manufacturer" className="border p-2 rounded" value={newProductForm.manufacturer} onChange={e => setNewProductForm({...newProductForm, manufacturer: e.target.value})} />
                   <input placeholder="SKU" className="border p-2 rounded" value={newProductForm.sku} onChange={e => setNewProductForm({...newProductForm, sku: e.target.value})} />
                   <input type="number" placeholder="Price" className="border p-2 rounded" value={newProductForm.price} onChange={e => setNewProductForm({...newProductForm, price: parseFloat(e.target.value)})} />
                   <select className="border p-2 rounded" value={newProductForm.category} onChange={e => setNewProductForm({...newProductForm, category: e.target.value as ProductCategory})}>

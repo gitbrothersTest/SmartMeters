@@ -1,229 +1,223 @@
 const express = require('express');
 const path = require('path');
 const nodemailer = require('nodemailer');
+const mysql = require('mysql2/promise');
 const fs = require('fs');
 
 const app = express();
 app.use(express.json());
+
+// Logger Middleware
+app.use((req, res, next) => {
+    console.log(`[Request] ${req.method} ${req.url}`);
+    next();
+});
 
 // 1. Configurare Mediu
 const envPath = path.join(__dirname, '.env');
 const dotenvResult = require('dotenv').config({ path: envPath });
 
 if (dotenvResult.error) {
-    console.log(`[SmartMeters Log] INFO: Nu s-a găsit fișierul .env la calea: ${envPath}`);
-    console.log(`[SmartMeters Log] Se vor folosi variabilele din interfața cPanel.`);
-} else {
-    console.log(`[SmartMeters Log] SUCCESS: Fișierul .env a fost încărcat de la: ${envPath}`);
+    console.log(`[SmartMeters Log] INFO: Nu s-a găsit fișierul .env. Se folosesc variabilele de mediu existente.`);
 }
 
-// 2. Gestionare Contor Comenzi (Persistence)
-const COUNTER_FILE = path.join(__dirname, 'order_counter.json');
+// 2. Configurare Bază de Date (Connection Pool)
+const pool = mysql.createPool({
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    decimalNumbers: true
+});
 
-function getNextOrderNumber() {
-    let count = 1000; // Începem de la 1000 dacă nu există fișierul
+// Helper pentru a testa conexiunea la pornire
+(async () => {
     try {
-        if (fs.existsSync(COUNTER_FILE)) {
-            const data = JSON.parse(fs.readFileSync(COUNTER_FILE, 'utf8'));
-            if (data && data.count) {
-                count = data.count;
-            }
+        const connection = await pool.getConnection();
+        console.log('[MySQL] Conexiune reușită la baza de date!');
+        connection.release();
+    } catch (err) {
+        console.error('------------------------------------------------');
+        console.error('[MySQL] EROARE CRITICĂ LA CONECTARE:');
+        console.error(`Mesaj: ${err.message}`);
+        console.error('Verificați dacă serviciul MySQL rulează și credențialele din .env sunt corecte.');
+        console.error('------------------------------------------------');
+    }
+})();
+
+// 3. API Produse (Citire cu Filtre Dinamice)
+app.get('/api/products', async (req, res) => {
+    try {
+        const { category, manufacturer, protocol, search } = req.query;
+        
+        let query = 'SELECT * FROM products WHERE 1=1';
+        const params = [];
+
+        if (category && category !== 'ALL') {
+            query += ' AND category = ?';
+            params.push(category);
         }
+        if (manufacturer && manufacturer !== 'ALL') {
+            query += ' AND manufacturer = ?';
+            params.push(manufacturer);
+        }
+        if (protocol && protocol !== 'ALL') {
+            query += ' AND protocol LIKE ?';
+            params.push(`%${protocol}%`);
+        }
+        if (search) {
+            query += ' AND (name LIKE ? OR sku LIKE ?)';
+            params.push(`%${search}%`, `%${search}%`);
+        }
+
+        query += ' ORDER BY created_at DESC';
+
+        const [rows] = await pool.execute(query, params);
+
+        const products = rows.map(p => ({
+            ...p,
+            shortDescription: typeof p.short_description === 'string' ? JSON.parse(p.short_description) : p.short_description,
+            fullDescription: typeof p.full_description === 'string' ? JSON.parse(p.full_description) : p.full_description,
+            specs: typeof p.specs === 'string' ? JSON.parse(p.specs) : p.specs,
+            image: p.image_url,
+            stockStatus: p.stock_status,
+            datasheetUrl: p.datasheet_url
+        }));
+
+        res.json(products);
     } catch (err) {
-        console.error("Eroare la citirea contorului:", err);
-    }
-
-    count++; // Incrementăm
-
-    try {
-        fs.writeFileSync(COUNTER_FILE, JSON.stringify({ count: count }));
-    } catch (err) {
-        console.error("Eroare la salvarea contorului:", err);
-    }
-
-    return count;
-}
-
-// 3. Generator HTML Email Profesional
-function generateOrderEmail(orderId, date, data) {
-    const { items, billing, shipping, totals, order_notes, email } = data;
-    
-    // Helper pentru rânduri tabel produse
-    const productsRows = items.map((item, index) => `
-        <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'}; border-bottom: 1px solid #e5e7eb;">
-            <td style="padding: 12px; font-size: 14px; color: #374151;">${item.name}<br><span style="font-size:11px; color:#6b7280;">SKU: ${item.sku}</span></td>
-            <td style="padding: 12px; font-size: 14px; color: #374151; text-align: center;">${item.quantity}</td>
-            <td style="padding: 12px; font-size: 14px; color: #374151; text-align: right;">${item.price} ${item.currency}</td>
-            <td style="padding: 12px; font-size: 14px; font-weight: bold; color: #111827; text-align: right;">${(item.price * item.quantity).toFixed(2)} ${item.currency}</td>
-        </tr>
-    `).join('');
-
-    return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="utf-8">
-        <style>
-            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 0; color: #111827; }
-            .container { max-width: 800px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-            .header { background-color: #0f172a; color: #ffffff; padding: 30px; text-align: left; }
-            .header h1 { margin: 0; font-size: 24px; font-weight: bold; }
-            .header p { margin: 5px 0 0; font-size: 14px; color: #94a3b8; }
-            .content { padding: 30px; }
-            .section-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; color: #0f172a; }
-            .info-grid { display: table; width: 100%; margin-bottom: 30px; border-collapse: collapse; }
-            .info-col { display: table-cell; width: 50%; vertical-align: top; padding-right: 20px; }
-            .data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            .data-table th { background-color: #f3f4f6; color: #4b5563; font-weight: 600; text-align: left; padding: 10px; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; }
-            .totals { text-align: right; margin-top: 20px; }
-            .total-row { padding: 5px 0; font-size: 14px; color: #4b5563; }
-            .total-final { font-size: 20px; font-weight: bold; color: #059669; margin-top: 10px; border-top: 1px solid #e5e7eb; padding-top: 10px; }
-            .footer { background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }
-            .badge { display: inline-block; padding: 4px 8px; background-color: #e0f2fe; color: #0369a1; border-radius: 4px; font-size: 12px; font-weight: bold; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h1>Comandă Nouă #${orderId}</h1>
-                <p>Data: ${date} | Status: <span style="color:#4ade80;">În procesare</span></p>
-            </div>
-            <div class="content">
-                
-                <!-- Notes Section -->
-                <div style="margin-bottom: 30px; background: #fffbeb; padding: 15px; border-left: 4px solid #f59e0b; border-radius: 4px;">
-                    <strong style="color: #b45309; display: block; margin-bottom: 5px;">Contact & Notițe:</strong>
-                    <div style="font-size: 14px; color: #78350f;">
-                        <strong>Email Client:</strong> <a href="mailto:${email}">${email}</a><br>
-                        ${order_notes ? `<strong>Notițe:</strong> ${order_notes}` : '<em>Fără notițe speciale.</em>'}
-                    </div>
-                </div>
-
-                <!-- Products Table -->
-                <div class="section-title">Produse din coș</div>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th width="50%">Produs</th>
-                            <th width="15%" style="text-align: center;">Cantitate</th>
-                            <th width="15%" style="text-align: right;">Preț Unitar</th>
-                            <th width="20%" style="text-align: right;">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${productsRows}
-                    </tbody>
-                </table>
-
-                <div class="totals">
-                    <div class="total-row">Subtotal: <strong>${totals.subtotal} RON</strong></div>
-                    ${totals.discount > 0 ? `<div class="total-row" style="color: #dc2626;">Discount (${totals.discountCode}): <strong>-${totals.discount} RON</strong></div>` : ''}
-                    <div class="total-final">TOTAL FINAL: ${totals.total} RON</div>
-                </div>
-
-                <div style="height: 30px;"></div>
-
-                <!-- Addresses Grid (Mimicking the screenshot layout) -->
-                <div class="section-title">Detalii Client</div>
-                
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px; border: 1px solid #e5e7eb;">
-                    <thead style="background: #f8fafc;">
-                        <tr>
-                            <th style="padding: 10px; border: 1px solid #e5e7eb; text-align: left;">Tip Adresă</th>
-                            <th style="padding: 10px; border: 1px solid #e5e7eb; text-align: left;">Nume</th>
-                            <th style="padding: 10px; border: 1px solid #e5e7eb; text-align: left;">Companie</th>
-                            <th style="padding: 10px; border: 1px solid #e5e7eb; text-align: left;">Adresă</th>
-                            <th style="padding: 10px; border: 1px solid #e5e7eb; text-align: left;">Oraș</th>
-                            <th style="padding: 10px; border: 1px solid #e5e7eb; text-align: left;">Telefon</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Facturare</td>
-                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${billing.name}</td>
-                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${billing.company || '-'}</td>
-                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${billing.address1} ${billing.address2 ? '<br>' + billing.address2 : ''}</td>
-                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${billing.city}, ${billing.postcode}<br>${billing.country}</td>
-                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${billing.phone}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Livrare</td>
-                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${shipping.name}</td>
-                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${shipping.company || '-'}</td>
-                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${shipping.address1} ${shipping.address2 ? '<br>' + shipping.address2 : ''}</td>
-                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${shipping.city}, ${shipping.postcode}<br>${shipping.country}</td>
-                            <td style="padding: 10px; border: 1px solid #e5e7eb;">${shipping.phone}</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-            </div>
-            <div class="footer">
-                <p>Acest email a fost generat automat de SmartMeters.ro</p>
-                <p>București, Romania | adrian.geanta@smartmeter.ro</p>
-            </div>
-        </div>
-    </body>
-    </html>
-    `;
-}
-
-// 4. Servirea fișierelor statice
-app.use(express.static(path.join(__dirname, 'dist')));
-
-// 5. Ruta API actualizată
-app.post('/api/trimite-comanda', async (req, res) => {
-    const data = req.body;
-    
-    // Configurare SMTP
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
-
-    if (!smtpHost || !smtpUser || !smtpPass) {
-        return res.status(500).json({ success: false, error: 'Configurare SMTP incompletă.' });
-    }
-
-    let transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: 465,
-        secure: true,
-        auth: { user: smtpUser, pass: smtpPass },
-        tls: { rejectUnauthorized: false }
-    });
-
-    // Generăm număr comandă unic
-    const orderId = getNextOrderNumber();
-    const dateStr = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
-
-    // Generăm HTML-ul
-    const htmlEmail = generateOrderEmail(orderId, dateStr, data);
-
-    const mailOptions = {
-        from: `"Smart Meters Comenzi" <${smtpUser}>`, 
-        to: smtpUser, // Trimitem către admin
-        replyTo: data.email, 
-        subject: `Comandă Nouă #${orderId} - ${data.billing.name}`,
-        html: htmlEmail // Folosim HTML
-    };
-
-    try {
-        await transporter.verify();
-        await transporter.sendMail(mailOptions);
-        console.log(`[SUCCESS] Comanda #${orderId} trimisă cu succes.`);
-        res.status(200).json({ success: true, message: 'Comanda a fost trimisă!', orderId: orderId });
-    } catch (err) {
-        console.error('[EROARE SMTP]', err);
-        res.status(500).json({ success: false, error: err.message });
+        console.error('[API Products] Error:', err);
+        res.status(500).json({ error: 'Eroare server la încărcarea produselor. Verificați conexiunea la baza de date.' });
     }
 });
 
-// 6. Fallback SPA
+app.get('/api/products/:id', async (req, res) => {
+    try {
+        const [rows] = await pool.execute('SELECT * FROM products WHERE id = ?', [req.params.id]);
+        if (rows.length === 0) return res.status(404).json({ error: 'Produs inexistent' });
+
+        const p = rows[0];
+        const product = {
+            ...p,
+            shortDescription: typeof p.short_description === 'string' ? JSON.parse(p.short_description) : p.short_description,
+            fullDescription: typeof p.full_description === 'string' ? JSON.parse(p.full_description) : p.full_description,
+            specs: typeof p.specs === 'string' ? JSON.parse(p.specs) : p.specs,
+            image: p.image_url,
+            stockStatus: p.stock_status,
+            datasheetUrl: p.datasheet_url
+        };
+        res.json(product);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 4. API Comenzi (Tranzacțional)
+app.post('/api/orders', async (req, res) => {
+    const conn = await pool.getConnection();
+    try {
+        const { email, billing, shipping, items, totals, order_notes, clientToken } = req.body;
+        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+        await conn.beginTransaction();
+
+        const orderNumber = `ORD-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+
+        const [orderResult] = await conn.execute(
+            `INSERT INTO orders 
+            (order_number, client_token, client_ip, customer_email, billing_details, shipping_details, order_notes, subtotal, discount_code, discount_amount, final_total, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new')`,
+            [
+                orderNumber,
+                clientToken,
+                clientIp,
+                email,
+                JSON.stringify(billing),
+                JSON.stringify(shipping),
+                order_notes || '',
+                totals.subtotal,
+                totals.discountCode || null,
+                totals.discount || 0,
+                totals.total
+            ]
+        );
+
+        const orderId = orderResult.insertId;
+
+        const itemValues = [];
+        const placeholders = items.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
+        
+        items.forEach(item => {
+            itemValues.push(
+                orderId,
+                item.id, 
+                item.name,
+                item.sku,
+                item.quantity,
+                item.price,
+                (item.price * item.quantity)
+            );
+        });
+
+        if (items.length > 0) {
+            await conn.execute(
+                `INSERT INTO order_items (order_id, product_id, product_name, sku, quantity, unit_price, total_price) VALUES ${placeholders}`,
+                itemValues
+            );
+        }
+
+        await conn.commit();
+
+        sendOrderEmail(orderNumber, req.body).catch(console.error);
+
+        res.status(201).json({ success: true, orderNumber, message: 'Comanda a fost înregistrată.' });
+
+    } catch (err) {
+        await conn.rollback();
+        console.error('[API Order] Transaction Error:', err);
+        res.status(500).json({ error: 'Eroare la procesarea comenzii.' });
+    } finally {
+        conn.release();
+    }
+});
+
+async function sendOrderEmail(orderNumber, data) {
+    const { items, billing, totals, email } = data;
+    
+    const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: 465,
+        secure: true,
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+        tls: { rejectUnauthorized: false }
+    });
+
+    const productsRows = items.map(item => 
+        `${item.name} (x${item.quantity}) - ${(item.price * item.quantity).toFixed(2)} RON`
+    ).join('\n');
+
+    const mailOptions = {
+        from: `"Smart Meters" <${process.env.SMTP_USER}>`,
+        to: process.env.SMTP_USER,
+        replyTo: email,
+        subject: `Comandă Nouă ${orderNumber} - ${billing.name}`,
+        text: `Comandă nouă de la ${billing.name}\n\nTotal: ${totals.total} RON\n\nProduse:\n${productsRows}`
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`[Email] Trimis pentru comanda ${orderNumber}`);
+}
+
+app.use(express.static(path.join(__dirname, 'dist')));
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-const PORT = process.env.PORT || 3000;
+// Changed default port to 3001 to prevent conflict with Vite (3000)
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-    console.log(`Serverul SmartMeters rulează pe portul ${PORT}`);
+    console.log(`Serverul SmartMeters rulează pe portul ${PORT} cu MySQL Pool.`);
 });

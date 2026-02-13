@@ -1,3 +1,4 @@
+
 import { Product, ProductCategory, Discount, Language } from './types';
 
 export const PRODUCTS: Product[] = [
@@ -6,6 +7,11 @@ export const PRODUCTS: Product[] = [
     sku: 'EL-3PH-001',
     name: 'SmartMeter Pro 3-Phase',
     category: ProductCategory.ELECTRIC,
+    manufacturer: 'SmartMeter',
+    series: 'Trifazat',
+    mounting: 'Sina DIN',
+    protocol: 'Modbus RTU',
+    maxCapacity: 80,
     price: 450,
     currency: 'RON',
     stockStatus: 'in_stock',
@@ -15,23 +21,27 @@ export const PRODUCTS: Product[] = [
       en: 'Industrial 3-phase electric meter with Class B accuracy.'
     },
     fullDescription: {
-      ro: 'Acest contor inteligent trifazat este ideal pentru aplicații industriale și comerciale. Dispune de comunicație Modbus RTU integrată și suportă măsurarea energiei active și reactive.',
-      en: 'This smart 3-phase meter is ideal for industrial and commercial applications. Features integrated Modbus RTU communication and supports active and reactive energy measurement.'
+      ro: 'Acest contor inteligent trifazat este ideal pentru aplicații industriale și comerciale.',
+      en: 'This smart 3-phase meter is ideal for industrial and commercial applications.'
     },
     specs: {
       'Voltaj': '3x230/400V',
-      'Curent': '5(80)A',
       'Frecvență': '50Hz',
       'Precizie': 'Clasa B (1%)',
-      'Display': 'LCD Backlit'
-    },
-    protocol: ['Modbus RTU', 'RS485']
+      'Display': 'LCD Backlit',
+      'IP': 'IP50'
+    }
   },
   {
     id: '2',
     sku: 'WT-DN20-002',
     name: 'AquaSmart Ultrasonic DN20',
     category: ProductCategory.WATER,
+    manufacturer: 'AquaTech',
+    series: 'Ultrasonic',
+    mounting: 'Flansa',
+    protocol: 'M-Bus',
+    maxCapacity: 2.5,
     price: 320,
     currency: 'RON',
     stockStatus: 'in_stock',
@@ -41,22 +51,26 @@ export const PRODUCTS: Product[] = [
       en: 'Smart ultrasonic water meter for cold water.'
     },
     fullDescription: {
-      ro: 'Tehnologie ultrasonică pentru o precizie ridicată și o durată de viață lungă a bateriei (până la 10 ani). Nu are piese în mișcare.',
-      en: 'Ultrasonic technology for high accuracy and long battery life (up to 10 years). No moving parts.'
+      ro: 'Tehnologie ultrasonică pentru o precizie ridicată.',
+      en: 'Ultrasonic technology for high accuracy.'
     },
     specs: {
       'Diametru': 'DN20',
-      'Debit Nominal (Q3)': '2.5 m3/h',
       'Temp. Max': '50°C',
-      'Presiune': 'PN16'
-    },
-    protocol: ['M-Bus', 'Wireless M-Bus']
+      'Presiune': 'PN16',
+      'Baterie': '10 ani'
+    }
   },
   {
     id: '3',
     sku: 'GS-G4-003',
     name: 'GasFlux G4 Smart',
     category: ProductCategory.GAS,
+    manufacturer: 'NoARK',
+    series: 'Diaphragm',
+    mounting: 'Standard',
+    protocol: 'Pulse',
+    maxCapacity: 6,
     price: 850,
     currency: 'RON',
     stockStatus: 'on_request',
@@ -66,22 +80,26 @@ export const PRODUCTS: Product[] = [
       en: 'Diaphragm gas meter with communication module.'
     },
     fullDescription: {
-      ro: 'Contor volumetric de gaz cu corecție de temperatură. Carcasă din oțel galvanizat rezistentă la coroziune.',
-      en: 'Volumetric gas meter with temperature correction. Corrosion-resistant galvanized steel casing.'
+      ro: 'Contor volumetric de gaz cu corecție de temperatură.',
+      en: 'Volumetric gas meter with temperature correction.'
     },
     specs: {
       'Tip': 'G4',
-      'Debit Max': '6 m3/h',
       'Presiune Max': '0.5 bar',
-      'Conexiune': '1-1/4"'
-    },
-    protocol: ['Pulse Output', 'NB-IoT']
+      'Conexiune': '1-1/4"',
+      'Carcasa': 'Otel Galvanizat'
+    }
   },
   {
     id: '4',
     sku: 'TH-HEAT-004',
     name: 'ThermoCompact Integral',
     category: ProductCategory.THERMAL,
+    manufacturer: 'Siemens',
+    series: 'Compact',
+    mounting: 'Retur',
+    protocol: 'M-Bus',
+    maxCapacity: 1.5,
     price: 680,
     currency: 'RON',
     stockStatus: 'in_stock',
@@ -91,16 +109,14 @@ export const PRODUCTS: Product[] = [
       en: 'Compact thermal energy meter.'
     },
     fullDescription: {
-      ro: 'Unitate compactă pentru măsurarea energiei termice în sisteme de încălzire și răcire. Include senzori de temperatură Pt500.',
-      en: 'Compact unit for measuring thermal energy in heating and cooling systems. Includes Pt500 temperature sensors.'
+      ro: 'Unitate compactă pentru măsurarea energiei termice.',
+      en: 'Compact unit for measuring thermal energy.'
     },
     specs: {
-      'Debit Nominal': '1.5 m3/h',
-      'Montaj': 'Retur',
+      'Senzori': 'Pt500',
       'Baterie': '10 ani',
       'Display': 'Detasabil'
-    },
-    protocol: ['M-Bus']
+    }
   }
 ];
 

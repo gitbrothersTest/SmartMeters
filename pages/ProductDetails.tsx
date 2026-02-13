@@ -94,12 +94,10 @@ const ProductDetails: React.FC = () => {
                       ))}
                       {product.protocol && (
                          <tr className="bg-white">
-                            <td className="py-2 px-4 font-medium text-gray-600 border-b border-gray-100">Protocols</td>
+                            <td className="py-2 px-4 font-medium text-gray-600 border-b border-gray-100">Protocol</td>
                             <td className="py-2 px-4 text-slate-800 border-b border-gray-100">
                                 <div className="flex gap-2">
-                                    {product.protocol.map(p => (
-                                        <span key={p} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">{p}</span>
-                                    ))}
+                                    <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">{product.protocol}</span>
                                 </div>
                             </td>
                          </tr>

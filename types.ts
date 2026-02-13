@@ -1,3 +1,4 @@
+
 export type Language = 'ro' | 'en';
 
 export enum ProductCategory {
@@ -11,6 +12,14 @@ export interface Product {
   id: string;
   sku: string;
   name: string;
+  
+  // New Filterable Fields
+  manufacturer: string;
+  series?: string; // e.g. Monofazat, Trifazat
+  mounting?: string; // e.g. DIN Rail
+  protocol?: string; // Primary protocol
+  maxCapacity?: number; // Numeric value for sorting
+
   shortDescription: {
     ro: string;
     en: string;
@@ -24,8 +33,9 @@ export interface Product {
   currency: string;
   stockStatus: 'in_stock' | 'on_request';
   image: string;
+  
+  // Remaining detailed specs
   specs: Record<string, string>;
-  protocol?: string[]; // e.g., Modbus, M-Bus
   datasheetUrl?: string;
 }
 
@@ -63,4 +73,6 @@ export interface OrderData {
   discountCode?: string;
   discountValue: number;
   total: number;
+  // Tracking
+  clientToken: string;
 }

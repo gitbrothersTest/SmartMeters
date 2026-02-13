@@ -9,7 +9,6 @@ import Shop from './pages/Shop';
 import ProductDetails from './pages/ProductDetails';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
-import Admin from './pages/Admin';
 import Contact from './pages/Contact';
 
 function App() {
@@ -25,7 +24,6 @@ function App() {
                 <Route path="product/:id" element={<ProductDetails />} />
                 <Route path="cart" element={<Cart />} />
                 <Route path="checkout" element={<Checkout />} />
-                <Route path="admin" element={<Admin />} />
                 <Route path="contact" element={<Contact />} />
                 <Route path="about" element={<div className="p-10 text-center text-xl font-bold text-gray-500">About Us Content Placeholder</div>} />
               </Route>

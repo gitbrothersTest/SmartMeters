@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { ShoppingCart, Menu, X, Globe, User } from 'lucide-react';
+import { ShoppingCart, Menu, X, Globe } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCart } from '../context/CartContext';
 
@@ -30,9 +30,6 @@ const Layout: React.FC = () => {
             <span>+40 722 000 000</span>
           </div>
           <div className="flex items-center space-x-4">
-            <Link to="/admin" className="hover:text-white flex items-center gap-1">
-              <User size={12} /> {t('nav.admin')}
-            </Link>
             <div className="flex items-center gap-1 cursor-pointer hover:text-white" onClick={() => setLanguage(language === 'ro' ? 'en' : 'ro')}>
               <Globe size={12} />
               <span className="uppercase font-bold">{language}</span>

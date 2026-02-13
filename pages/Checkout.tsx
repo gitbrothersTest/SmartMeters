@@ -46,7 +46,7 @@ const Checkout: React.FC = () => {
     return true;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) {
       alert('Please fill in all required fields.');
@@ -57,7 +57,7 @@ const Checkout: React.FC = () => {
 
     const finalShipping = shippingSame ? billing : shipping;
 
-    // GENERATE EMAIL BODY STRING
+    // Prepare data for the API
     const itemsList = items.map(item => 
       `${item.name} | ${item.quantity} | ${(item.price * item.quantity).toFixed(2)} lei`
     ).join('\n');
@@ -69,35 +69,44 @@ Notițe comandă:
 ${orderNotes || 'N/A'}
 
 Produse din coș:
-
-Produs | Cantitate | Preț
 ${itemsList}
 
 TOTAL: ${subtotal.toFixed(2)} lei
+Discount: -${discountValue.toFixed(2)} lei
+TOTAL FINAL: ${total.toFixed(2)} lei
 
-Cod de reducere: ${discountCode || 'N/A'}
-Discount aplicat: -${discountValue.toFixed(2)} lei
-Total cu reducere: ${total.toFixed(2)} lei
-
-Detalii Client:
-
-Tip Adresă | Nume | Companie | Adresă 1 | Adresă 2 | Oraș | Cod Poștal | Țară | Telefon
-
-Facturare | ${billing.name} | ${billing.company} | ${billing.address1} | ${billing.address2} | ${billing.city} | ${billing.postcode} | ${billing.country} | ${billing.phone}
-
-Livrare | ${finalShipping.name} | ${finalShipping.company} | ${finalShipping.address1} | ${finalShipping.address2} | ${finalShipping.city} | ${finalShipping.postcode} | ${finalShipping.country} | ${finalShipping.phone}
+Facturare: ${billing.name} (${billing.company}), ${billing.city}, ${billing.phone}
+Livrare: ${finalShipping.name} (${finalShipping.company}), ${finalShipping.city}, ${finalShipping.address1}
     `;
 
-    console.log('--- SENDING EMAIL TO adrian.geanta@smartmeter.ro ---');
-    console.log(emailBody);
-    console.log('----------------------------------------------------');
+    const payload = {
+        email: contactEmail,
+        order_notes: emailBody, // Sending the full details in the notes field for simplicity, or structure it as needed by server.js
+        billing_name: billing.name,
+        final_total: total.toFixed(2)
+    };
 
-    // Simulate Network Request
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setSubmitted(true);
-      clearCart();
-    }, 1500);
+    try {
+        const response = await fetch('/api/trimite-comanda', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+             setSubmitted(true);
+             clearCart();
+        } else {
+             throw new Error('Server returned error');
+        }
+    } catch (error) {
+        console.error("Order submission failed", error);
+        alert("A apărut o eroare la trimiterea comenzii. Vă rugăm verificați conexiunea sau încercați mai târziu.");
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   if (submitted) {

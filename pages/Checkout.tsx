@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
@@ -88,7 +87,8 @@ const Checkout: React.FC = () => {
     };
 
     try {
-        const response = await fetch('/api/trimite-comanda', {
+        // Updated endpoint to match server.js definition
+        const response = await fetch('/api/orders', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

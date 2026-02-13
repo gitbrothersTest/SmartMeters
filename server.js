@@ -205,8 +205,9 @@ app.post('/api/orders', async (req, res) => {
 
         await conn.commit();
 
-        // Trimitem email-ul asincron (nu blocăm răspunsul)
-        sendOrderEmail(orderNumber, req.body).catch(console.error);
+        // RE-ENABLED EMAIL SENDING TO ADMIN ONLY
+        // Asynchronously send email to avoid blocking the response
+        sendOrderEmail(orderNumber, req.body).catch(err => console.error("Email error:", err));
 
         res.status(201).json({ success: true, orderNumber, message: 'Comanda a fost înregistrată.' });
 
@@ -220,7 +221,7 @@ app.post('/api/orders', async (req, res) => {
 });
 
 async function sendOrderEmail(orderNumber, data) {
-    const { items, billing, totals, email } = data;
+    const { items, billing, shipping, totals, email, order_notes } = data;
     
     const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
@@ -230,87 +231,132 @@ async function sendOrderEmail(orderNumber, data) {
         tls: { rejectUnauthorized: false }
     });
 
-    // Construire tabel produse HTML
-    const productsHtml = items.map(item => `
-        <tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 10px;">${item.name}<br/><span style="font-size:12px;color:#777;">SKU: ${item.sku}</span></td>
-            <td style="padding: 10px; text-align: center;">${item.quantity}</td>
-            <td style="padding: 10px; text-align: right;">${item.price} RON</td>
-            <td style="padding: 10px; text-align: right;"><b>${(item.price * item.quantity).toFixed(2)} RON</b></td>
+    // 1. Products HTML Rows
+    const productsHtml = items.map((item, index) => `
+        <tr style="border-bottom: 1px solid #e2e8f0; background-color: ${index % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+            <td style="padding: 12px;">
+                <div style="font-weight: bold; color: #1e293b;">${item.name}</div>
+                <div style="font-size: 11px; color: #94a3b8; font-family: monospace;">SKU: ${item.sku}</div>
+            </td>
+            <td style="padding: 12px; text-align: center;">${item.quantity}</td>
+            <td style="padding: 12px; text-align: right;">${item.price} RON</td>
+            <td style="padding: 12px; text-align: right; font-weight: bold;">${(item.price * item.quantity).toFixed(2)} RON</td>
         </tr>
     `).join('');
 
-    const htmlContent = `
-    <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
-        <div style="background-color: #0f172a; color: white; padding: 20px; text-align: center;">
-            <h2 style="margin: 0;">Confirmare Comandă</h2>
-            <p style="margin: 5px 0 0;">#${orderNumber}</p>
-        </div>
-        
-        <div style="padding: 20px;">
-            <p>Salut <strong>${billing.name}</strong>,</p>
-            <p>Îți mulțumim pentru comanda plasată pe SmartMeters.ro. Iată detaliile:</p>
-            
-            <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-                <thead>
-                    <tr style="background-color: #f8fafc; text-align: left;">
-                        <th style="padding: 10px;">Produs</th>
-                        <th style="padding: 10px; text-align: center;">Cant</th>
-                        <th style="padding: 10px; text-align: right;">Preț Unit</th>
-                        <th style="padding: 10px; text-align: right;">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${productsHtml}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="3" style="padding: 10px; text-align: right;">Subtotal:</td>
-                        <td style="padding: 10px; text-align: right;">${totals.subtotal} RON</td>
-                    </tr>
-                    ${totals.discount > 0 ? `
-                    <tr>
-                        <td colspan="3" style="padding: 10px; text-align: right; color: green;">Discount (${totals.discountCode}):</td>
-                        <td style="padding: 10px; text-align: right; color: green;">-${totals.discount} RON</td>
-                    </tr>
-                    ` : ''}
-                    <tr style="font-size: 18px; font-weight: bold;">
-                        <td colspan="3" style="padding: 10px; text-align: right;">Total Final:</td>
-                        <td style="padding: 10px; text-align: right;">${totals.total} RON</td>
-                    </tr>
-                </tfoot>
-            </table>
+    // 2. Client Details Table (Facturare vs Livrare)
+    const clientTableHtml = `
+    <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; border: 1px solid #e2e8f0;">
+        <thead>
+            <tr style="background-color: #f1f5f9; text-align: left;">
+                <th style="padding: 8px; border: 1px solid #e2e8f0;">Tip Adresă</th>
+                <th style="padding: 8px; border: 1px solid #e2e8f0;">Nume</th>
+                <th style="padding: 8px; border: 1px solid #e2e8f0;">Companie</th>
+                <th style="padding: 8px; border: 1px solid #e2e8f0;">Adresă</th>
+                <th style="padding: 8px; border: 1px solid #e2e8f0;">Oraș</th>
+                <th style="padding: 8px; border: 1px solid #e2e8f0;">Telefon</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight:bold;">Facturare</td>
+                <td style="padding: 8px; border: 1px solid #e2e8f0;">${billing.name}</td>
+                <td style="padding: 8px; border: 1px solid #e2e8f0;">${billing.company || '-'}</td>
+                <td style="padding: 8px; border: 1px solid #e2e8f0;">${billing.address1} ${billing.address2 ? ', ' + billing.address2 : ''}</td>
+                <td style="padding: 8px; border: 1px solid #e2e8f0;">${billing.city}, ${billing.postcode}</td>
+                <td style="padding: 8px; border: 1px solid #e2e8f0;">${billing.phone}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight:bold;">Livrare</td>
+                <td style="padding: 8px; border: 1px solid #e2e8f0;">${shipping.name}</td>
+                <td style="padding: 8px; border: 1px solid #e2e8f0;">${shipping.company || '-'}</td>
+                <td style="padding: 8px; border: 1px solid #e2e8f0;">${shipping.address1} ${shipping.address2 ? ', ' + shipping.address2 : ''}</td>
+                <td style="padding: 8px; border: 1px solid #e2e8f0;">${shipping.city}, ${shipping.postcode}</td>
+                <td style="padding: 8px; border: 1px solid #e2e8f0;">${shipping.phone}</td>
+            </tr>
+        </tbody>
+    </table>
+    `;
 
-            <div style="margin-top: 30px; background-color: #f8fafc; padding: 15px; border-radius: 6px;">
-                <h3 style="margin-top: 0; font-size: 16px;">Detalii Facturare</h3>
-                <p style="margin: 0; font-size: 14px; line-height: 1.5;">
-                    ${billing.company ? billing.company + '<br>' : ''}
-                    ${billing.name}<br>
-                    ${billing.address1}, ${billing.city}, ${billing.postcode}<br>
-                    Telefon: ${billing.phone}
+    // 3. Full Layout (Based on Screenshot)
+    const htmlContent = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; padding: 20px;">
+        <div style="max-width: 800px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+            
+            <!-- HEADER (Black background, white text) -->
+            <div style="background-color: #0f172a; padding: 25px; color: #ffffff;">
+                <h1 style="margin: 0; font-size: 24px; font-weight: 700;">Comandă Nouă #${orderNumber}</h1>
+                <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.9;">
+                    Data: ${new Date().toLocaleDateString('ro-RO')} | Status: <span style="color: #4ade80; font-weight: bold;">În procesare</span>
                 </p>
             </div>
-            
-            <p style="margin-top: 30px; font-size: 13px; color: #777; text-align: center;">
-                Vei fi contactat în scurt timp de un reprezentant pentru confirmarea stocului și emiterea facturii fiscale.
-            </p>
-        </div>
-        <div style="background-color: #f1f5f9; padding: 15px; text-align: center; font-size: 12px; color: #64748b;">
-            © ${new Date().getFullYear()} SmartMeters.ro - Industrial Metering Solutions
+
+            <div style="padding: 30px;">
+                
+                <!-- CONTACT & NOTES BOX (Yellow/Orange) -->
+                <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; margin-bottom: 30px; border-radius: 4px;">
+                    <h3 style="margin: 0 0 10px 0; color: #92400e; font-size: 16px; font-weight: bold;">Contact & Notițe:</h3>
+                    <p style="margin: 5px 0; font-size: 14px;">
+                        <span style="color: #92400e; font-weight: bold;">Email Client:</span> 
+                        <a href="mailto:${email}" style="color: #2563eb; text-decoration: none;">${email}</a>
+                    </p>
+                    <p style="margin: 5px 0; font-size: 14px;">
+                        <span style="color: #92400e; font-weight: bold;">Notițe:</span> ${order_notes || 'N/A'}
+                    </p>
+                </div>
+
+                <!-- PRODUCT TABLE -->
+                <h3 style="font-size: 18px; color: #1e293b; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">Produse din coș</h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <thead>
+                        <tr style="background-color: #f1f5f9; color: #64748b; text-transform: uppercase; font-size: 12px; letter-spacing: 0.05em;">
+                            <th style="padding: 10px; text-align: left;">PRODUS</th>
+                            <th style="padding: 10px; text-align: center;">CANTITATE</th>
+                            <th style="padding: 10px; text-align: right;">PREȚ UNITAR</th>
+                            <th style="padding: 10px; text-align: right;">TOTAL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${productsHtml}
+                    </tbody>
+                </table>
+
+                <!-- TOTALS -->
+                <div style="margin-top: 20px; text-align: right;">
+                    <p style="margin: 5px 0; font-size: 14px; color: #64748b;">Subtotal: ${totals.subtotal} RON</p>
+                    ${totals.discount > 0 ? `<p style="margin: 5px 0; font-size: 14px; color: #16a34a;">Discount (${totals.discountCode}): -${totals.discount} RON</p>` : ''}
+                    <div style="font-size: 24px; font-weight: bold; color: #059669; margin-top: 10px;">
+                        TOTAL FINAL: ${totals.total} RON
+                    </div>
+                </div>
+
+                <!-- CLIENT DETAILS -->
+                <div style="margin-top: 40px;">
+                    <h3 style="font-size: 18px; color: #1e293b; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">Detalii Client</h3>
+                    ${clientTableHtml}
+                </div>
+
+            </div>
+
+            <!-- FOOTER -->
+            <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8;">
+                <p style="margin: 0;">Acest email a fost generat automat de SmartMeters.ro</p>
+                <p style="margin: 5px 0;">București, Romania | adrian.geanta@smartmeter.ro</p>
+            </div>
         </div>
     </div>
     `;
 
     const mailOptions = {
-        from: `"Smart Meters" <${process.env.SMTP_USER}>`,
-        to: process.env.SMTP_USER, // Admin primește copia
-        cc: email, // Clientul primește copia (CC) sau direct TO
-        subject: `Confirmare Comandă ${orderNumber} - SmartMeters.ro`,
+        from: `"Smart Meters Admin" <${process.env.SMTP_USER}>`,
+        to: process.env.SMTP_USER, // SEND ONLY TO ADMIN
+        // NO CC to client, as requested
+        subject: `Comandă Nouă #${orderNumber} - ${billing.name}`,
         html: htmlContent
     };
 
     await transporter.sendMail(mailOptions);
-    console.log(`[Email] Trimis (HTML) pentru comanda ${orderNumber}`);
+    console.log(`[Email] Notification sent to ADMIN for order ${orderNumber}`);
 }
 
 app.use(express.static(path.join(__dirname, 'dist')));

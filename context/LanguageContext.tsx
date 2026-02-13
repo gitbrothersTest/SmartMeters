@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Language } from '../types';
 import { TRANSLATIONS } from '../constants';
 
@@ -11,9 +11,21 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>('ro');
+  const [language, setLanguage] = useState<Language>(() => {
+    // Attempt to recover language from localStorage, default to 'ro'
+    const saved = localStorage.getItem('app_language');
+    return (saved === 'ro' || saved === 'en') ? saved : 'ro';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('app_language', language);
+  }, [language]);
 
   const t = (key: string): string => {
+    if (!TRANSLATIONS[language]) {
+        console.warn(`Missing translation set for language: ${language}`);
+        return key;
+    }
     return TRANSLATIONS[language][key] || key;
   };
 

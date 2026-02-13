@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { ShoppingCart, Menu, X, Globe } from 'lucide-react';
+import { ShoppingCart, Menu, X, Globe, User } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCart } from '../context/CartContext';
 
@@ -30,6 +30,11 @@ const Layout: React.FC = () => {
             <span>+40 722 000 000</span>
           </div>
           <div className="flex items-center space-x-4">
+            <Link to="/my-orders" className="flex items-center gap-1 hover:text-white cursor-pointer transition-colors">
+                <User size={12} />
+                <span className="font-medium">{t('nav.my_orders')}</span>
+            </Link>
+            <div className="w-px h-3 bg-gray-600 mx-2"></div>
             <div className="flex items-center gap-1 cursor-pointer hover:text-white" onClick={() => setLanguage(language === 'ro' ? 'en' : 'ro')}>
               <Globe size={12} />
               <span className="uppercase font-bold">{language}</span>
@@ -99,6 +104,9 @@ const Layout: React.FC = () => {
                     {link.name}
                   </Link>
                 ))}
+                <Link to="/my-orders" className="text-gray-700 hover:text-accent font-medium" onClick={() => setIsMenuOpen(false)}>
+                    {t('nav.my_orders')}
+                </Link>
               </div>
             </div>
           )}

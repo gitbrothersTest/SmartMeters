@@ -10,6 +10,7 @@ import ProductDetails from './pages/ProductDetails';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Contact from './pages/Contact';
+import MyOrders from './pages/MyOrders';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
                 <Route path="cart" element={<Cart />} />
                 <Route path="checkout" element={<Checkout />} />
                 <Route path="contact" element={<Contact />} />
+                <Route path="my-orders" element={<MyOrders />} />
                 <Route path="about" element={<div className="p-10 text-center text-xl font-bold text-gray-500">About Us Content Placeholder</div>} />
               </Route>
             </Routes>

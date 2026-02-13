@@ -57,33 +57,19 @@ const Checkout: React.FC = () => {
 
     const finalShipping = shippingSame ? billing : shipping;
 
-    // Prepare data for the API
-    const itemsList = items.map(item => 
-      `${item.name} | ${item.quantity} | ${(item.price * item.quantity).toFixed(2)} lei`
-    ).join('\n');
-
-    const emailBody = `
-Email de contact: ${contactEmail}
-
-Notițe comandă:
-${orderNotes || 'N/A'}
-
-Produse din coș:
-${itemsList}
-
-TOTAL: ${subtotal.toFixed(2)} lei
-Discount: -${discountValue.toFixed(2)} lei
-TOTAL FINAL: ${total.toFixed(2)} lei
-
-Facturare: ${billing.name} (${billing.company}), ${billing.city}, ${billing.phone}
-Livrare: ${finalShipping.name} (${finalShipping.company}), ${finalShipping.city}, ${finalShipping.address1}
-    `;
-
+    // Payload cu date structurate pentru generare HTML pe server
     const payload = {
         email: contactEmail,
-        order_notes: emailBody, // Sending the full details in the notes field for simplicity
-        billing_name: billing.name,
-        final_total: total.toFixed(2)
+        order_notes: orderNotes,
+        billing: billing,
+        shipping: finalShipping,
+        items: items,
+        totals: {
+            subtotal: subtotal.toFixed(2),
+            discount: discountValue.toFixed(2),
+            discountCode: discountCode,
+            total: total.toFixed(2)
+        }
     };
 
     try {

@@ -524,7 +524,7 @@ async function sendOrderEmail(orderNumber, data) {
 
     const htmlContent = `
     <div style="font-family: sans-serif; background-color: #f5f5f5; padding: 20px;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+        <div style="max-width: 800px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <!-- Header -->
             <div style="background-color: #0f172a; color: white; padding: 30px;">
                 <h1 style="margin: 0; font-size: 24px;">Comandă Nouă #${orderNumber}</h1>
@@ -535,8 +535,8 @@ async function sendOrderEmail(orderNumber, data) {
                 <!-- Contact & Notes -->
                 <div style="background-color: #fffbeb; border-left: 4px solid #d97706; padding: 15px; margin-bottom: 30px;">
                     <h3 style="margin: 0 0 10px 0; color: #92400e; font-size: 16px;">Contact & Notițe:</h3>
-                    <p style="margin: 0; font-size: 14px;"><strong>Email Client:</strong> <a href="mailto:${email}" style="color: #2563eb;">${email}</a></p>
-                    ${order_notes ? `<p style="margin: 5px 0 0 0; font-size: 14px;"><strong>Notițe:</strong> ${order_notes}</p>` : ''}
+                    <p style="margin: 0 0 10px 0; font-size: 14px;"><strong>Email Client:</strong> <a href="mailto:${email}" style="color: #2563eb;">${email}</a></p>
+                    <p style="margin: 0; font-size: 14px;"><strong>Notițe:</strong> ${order_notes ? order_notes : 'Nu există notite.'}</p>
                 </div>
 
                 <!-- Products -->

@@ -39,53 +39,71 @@
 
 ---
 
-## 3. Database Schema (Inferred)
+## 3. Database Schema (Actual)
 
-The application expects the following MySQL structure:
+Based on `DESCRIBE` output from the live database.
 
-*   **`products`**
-    *   `id` (INT, PK, AI)
-    *   `sku` (VARCHAR)
-    *   `name` (VARCHAR)
-    *   `category` (VARCHAR) - *Enum: ELECTRIC, WATER, GAS, THERMAL*
-    *   `manufacturer` (VARCHAR)
-    *   `price` (DECIMAL)
-    *   `currency` (VARCHAR)
-    *   `stock_status` (VARCHAR)
-    *   `image_url` (VARCHAR)
-    *   `short_description` (JSON) - *{ro: string, en: string}*
-    *   `full_description` (JSON)
-    *   `specs` (JSON) - *Key-value pairs*
-    *   `protocol` (VARCHAR/JSON)
-    *   `datasheet_url` (VARCHAR)
+### Table: `products`
+| Field | Type | Null | Key | Default | Extra |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `id` | `int` | NO | PRI | NULL | auto_increment |
+| `sku` | `varchar(50)` | NO | UNI | NULL | |
+| `name` | `varchar(255)` | NO | | NULL | |
+| `category` | `enum('ELECTRIC','WATER','GAS','THERMAL')` | NO | MUL | NULL | |
+| `manufacturer` | `varchar(100)` | NO | MUL | NULL | |
+| `series` | `varchar(100)` | YES | | NULL | |
+| `mounting` | `varchar(100)` | YES | | NULL | |
+| `protocol` | `varchar(100)` | YES | MUL | NULL | |
+| `max_capacity` | `decimal(10,2)` | YES | | NULL | |
+| `price` | `decimal(10,2)` | NO | | NULL | |
+| `currency` | `varchar(10)` | YES | | 'RON' | |
+| `stock_status` | `enum('in_stock','on_request')` | YES | | 'in_stock' | |
+| `image_url` | `varchar(500)` | YES | | NULL | |
+| `short_description` | `json` | YES | | NULL | |
+| `full_description` | `json` | YES | | NULL | |
+| `specs` | `json` | YES | | NULL | |
+| `datasheet_url` | `varchar(500)` | YES | | NULL | |
+| `created_at` | `timestamp` | YES | | CURRENT_TIMESTAMP | |
+| `updated_at` | `timestamp` | YES | | CURRENT_TIMESTAMP | on update |
 
-*   **`orders`**
-    *   `id` (INT, PK, AI)
-    *   `order_number` (VARCHAR) - *e.g., ORD-2025-123456*
-    *   `client_token` (VARCHAR) - *UUID stored in localStorage for guest history*
-    *   `customer_email` (VARCHAR)
-    *   `billing_details` (JSON)
-    *   `shipping_details` (JSON)
-    *   `subtotal` (DECIMAL)
-    *   `discount_amount` (DECIMAL)
-    *   `final_total` (DECIMAL)
-    *   `status` (VARCHAR) - *new, processing, completed*
-    *   `created_at` (DATETIME)
+### Table: `orders`
+| Field | Type | Null | Key | Default | Extra |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `id` | `int` | NO | PRI | NULL | auto_increment |
+| `order_number` | `varchar(20)` | NO | UNI | NULL | |
+| `client_token` | `varchar(64)` | YES | MUL | NULL | |
+| `client_ip` | `varchar(45)` | YES | | NULL | |
+| `customer_email` | `varchar(255)` | NO | | NULL | |
+| `billing_details` | `json` | NO | | NULL | |
+| `shipping_details` | `json` | NO | | NULL | |
+| `order_notes` | `text` | YES | | NULL | |
+| `subtotal` | `decimal(10,2)` | NO | | NULL | |
+| `discount_code` | `varchar(50)` | YES | | NULL | |
+| `discount_amount` | `decimal(10,2)` | YES | | 0.00 | |
+| `final_total` | `decimal(10,2)` | NO | | NULL | |
+| `status` | `enum('new','processing','shipped','completed','cancelled')` | YES | | 'new' | |
+| `created_at` | `timestamp` | YES | | CURRENT_TIMESTAMP | |
 
-*   **`order_items`**
-    *   `id` (INT, PK, AI)
-    *   `order_id` (INT, FK)
-    *   `product_id` (INT)
-    *   `sku` (VARCHAR)
-    *   `quantity` (INT)
-    *   `unit_price` (DECIMAL)
-    *   `total_price` (DECIMAL)
+### Table: `order_items`
+| Field | Type | Null | Key | Default | Extra |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `id` | `int` | NO | PRI | NULL | auto_increment |
+| `order_id` | `int` | NO | MUL | NULL | |
+| `product_id` | `int` | YES | | NULL | |
+| `product_name` | `varchar(255)` | NO | | NULL | |
+| `sku` | `varchar(50)` | NO | | NULL | |
+| `quantity` | `int` | NO | | NULL | |
+| `unit_price` | `decimal(10,2)` | NO | | NULL | |
+| `total_price` | `decimal(10,2)` | NO | | NULL | |
 
-*   **`discounts`**
-    *   `code` (VARCHAR)
-    *   `type` (VARCHAR) - *percent, fixed*
-    *   `value` (DECIMAL)
-    *   `is_active` (BOOLEAN)
+### Table: `discounts`
+| Field | Type | Null | Key | Default | Extra |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `id` | `int` | NO | PRI | NULL | auto_increment |
+| `code` | `varchar(50)` | NO | UNI | NULL | |
+| `type` | `enum('percent','fixed')` | NO | | NULL | |
+| `value` | `decimal(10,2)` | NO | | NULL | |
+| `is_active` | `tinyint(1)` | YES | | 1 | |
 
 ---
 
@@ -127,6 +145,7 @@ The application expects the following MySQL structure:
 *   [ ] **Admin:** Currently mock-only. Needs real auth and DB write endpoints.
 
 ### Recent Changelog
+*   **Updated Docs:** Refreshed DB Schema section with exact SQL structure (`products`, `orders`, `order_items`, `discounts`).
 *   **Fixed HTTP Tunnel:** Moved `DB_TUNNEL_SECRET` from Request Headers to Request Body to bypass cPanel firewall stripping.
 *   **Created Context File:** Added `AI_CONTEXT.md` for agent continuity.
 *   **Updated `server.js`:** Implemented tunnel logic specifically for transactions (Mock Transaction for tunnel mode).

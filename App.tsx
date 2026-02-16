@@ -11,6 +11,9 @@ import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Contact from './pages/Contact';
 import MyOrders from './pages/MyOrders';
+import About from './pages/About';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
 
 function App() {
   return (
@@ -27,7 +30,9 @@ function App() {
                 <Route path="checkout" element={<Checkout />} />
                 <Route path="contact" element={<Contact />} />
                 <Route path="my-orders" element={<MyOrders />} />
-                <Route path="about" element={<div className="p-10 text-center text-xl font-bold text-gray-500">About Us Content Placeholder</div>} />
+                <Route path="about" element={<About />} />
+                <Route path="terms" element={<Terms />} />
+                <Route path="privacy" element={<Privacy />} />
               </Route>
             </Routes>
           </HashRouter>

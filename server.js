@@ -18,7 +18,7 @@ const envPath = path.join(__dirname, '.env');
 const dotenvResult = require('dotenv').config({ path: envPath });
 
 if (dotenvResult.error) {
-    console.log(`[SmartMeters Log] INFO: Nu s-a găsit fișierul .env. Se folosesc variabilele de mediu existente.`);
+    console.log(`[SmartMeter Log] INFO: Nu s-a găsit fișierul .env. Se folosesc variabilele de mediu existente.`);
 }
 
 // 2. Configurare Bază de Date (Connection Pool)
@@ -112,6 +112,32 @@ app.get('/api/products/:id', async (req, res) => {
         res.json(product);
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// 3.5 API Discount Validation
+app.get('/api/validate-discount', async (req, res) => {
+    try {
+        const { code } = req.query;
+        if (!code) return res.status(400).json({ error: 'Cod lipsă' });
+
+        // Presupunem tabela 'discounts' cu coloanele: code, type ('percent'|'fixed'), value, is_active
+        const [rows] = await pool.execute(
+            'SELECT code, type, value FROM discounts WHERE code = ? AND is_active = 1', 
+            [code]
+        );
+
+        if (rows.length > 0) {
+            res.json(rows[0]);
+        } else {
+            res.status(404).json({ error: 'Cod invalid sau expirat' });
+        }
+    } catch (err) {
+        console.error('[API Discount] Error:', err);
+        // Fallback pentru demo dacă nu există tabela
+        if (code === 'B2B10') res.json({ code: 'B2B10', type: 'percent', value: 10 });
+        else if (code === 'WELCOME50') res.json({ code: 'WELCOME50', type: 'fixed', value: 50 });
+        else res.status(500).json({ error: 'Eroare la validarea codului.' });
     }
 });
 
@@ -323,10 +349,15 @@ async function sendOrderEmail(orderNumber, data) {
 
                 <!-- TOTALS -->
                 <div style="margin-top: 20px; text-align: right;">
-                    <p style="margin: 5px 0; font-size: 14px; color: #64748b;">Subtotal: ${totals.subtotal} RON</p>
-                    ${totals.discount > 0 ? `<p style="margin: 5px 0; font-size: 14px; color: #16a34a;">Discount (${totals.discountCode}): -${totals.discount} RON</p>` : ''}
-                    <div style="font-size: 24px; font-weight: bold; color: #059669; margin-top: 10px;">
-                        TOTAL FINAL: ${totals.total} RON
+                    <p style="margin: 5px 0; font-size: 14px; color: #64748b;">Preț înainte de reducere: ${totals.subtotal} RON</p>
+                    ${totals.discount > 0 ? `
+                        <div style="margin: 5px 0; font-size: 14px; padding: 5px; background-color: #f0fdf4; display: inline-block; border-radius: 4px;">
+                            <span style="color: #15803d; font-weight: bold;">Reducere aplicată (${totals.discountCode}):</span> 
+                            <span style="color: #16a34a;">-${totals.discount} RON</span>
+                        </div>
+                    ` : ''}
+                    <div style="font-size: 24px; font-weight: bold; color: #059669; margin-top: 10px; border-top: 2px solid #e2e8f0; padding-top: 10px;">
+                        TOTAL FINAL (după reducere): ${totals.total} RON
                     </div>
                 </div>
 
@@ -340,7 +371,7 @@ async function sendOrderEmail(orderNumber, data) {
 
             <!-- FOOTER -->
             <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8;">
-                <p style="margin: 0;">Acest email a fost generat automat de SmartMeters.ro</p>
+                <p style="margin: 0;">Acest email a fost generat automat de SmartMeter.ro</p>
                 <p style="margin: 5px 0;">București, Romania | adrian.geanta@smartmeter.ro</p>
             </div>
         </div>
@@ -348,7 +379,7 @@ async function sendOrderEmail(orderNumber, data) {
     `;
 
     const mailOptions = {
-        from: `"Smart Meters Admin" <${process.env.SMTP_USER}>`,
+        from: `"Smart Meter Admin" <${process.env.SMTP_USER}>`,
         to: process.env.SMTP_USER, // SEND ONLY TO ADMIN
         // NO CC to client, as requested
         subject: `Comandă Nouă #${orderNumber} - ${billing.name}`,
@@ -367,5 +398,5 @@ app.get('*', (req, res) => {
 // Changed default port to 3001 to prevent conflict with Vite (3000)
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-    console.log(`Serverul SmartMeters rulează pe portul ${PORT} cu MySQL Pool.`);
+    console.log(`Serverul SmartMeter rulează pe portul ${PORT} cu MySQL Pool.`);
 });

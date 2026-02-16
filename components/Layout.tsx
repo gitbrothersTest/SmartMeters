@@ -26,7 +26,7 @@ const Layout: React.FC = () => {
         {/* Top Bar - Very Corporate */}
         <div className="bg-primary text-gray-300 text-xs py-2 px-4 md:px-8 flex justify-between items-center">
           <div>
-            <span className="mr-4">support@smartmeters.ro</span>
+            <span className="mr-4">support@smartmeter.ro</span>
             <span>+40 722 000 000</span>
           </div>
           <div className="flex items-center space-x-4">
@@ -51,7 +51,7 @@ const Layout: React.FC = () => {
                 SM
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-bold text-primary tracking-tight">SmartMeters.ro</span>
+                <span className="text-xl font-bold text-primary tracking-tight">SmartMeter.ro</span>
                 <span className="text-xs text-gray-500 uppercase tracking-widest hidden sm:block">Industrial Metering</span>
               </div>
             </Link>
@@ -122,7 +122,7 @@ const Layout: React.FC = () => {
       <footer className="bg-primary text-gray-400 py-12 border-t border-gray-800">
         <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-white text-lg font-bold mb-4">SmartMeters.ro</h3>
+            <h3 className="text-white text-lg font-bold mb-4">SmartMeter.ro</h3>
             <p className="text-sm leading-relaxed">
               {t('hero.subtitle')}
             </p>
@@ -138,8 +138,8 @@ const Layout: React.FC = () => {
           <div>
             <h4 className="text-white font-semibold mb-4">Support</h4>
             <ul className="space-y-2 text-sm">
-              <li><span className="hover:text-white cursor-pointer">{t('footer.terms')}</span></li>
-              <li><span className="hover:text-white cursor-pointer">{t('footer.privacy')}</span></li>
+              <li><Link to="/terms" className="hover:text-white">{t('footer.terms')}</Link></li>
+              <li><Link to="/privacy" className="hover:text-white">{t('footer.privacy')}</Link></li>
             </ul>
           </div>
           <div>
@@ -149,7 +149,7 @@ const Layout: React.FC = () => {
           </div>
         </div>
         <div className="container mx-auto px-4 mt-8 pt-8 border-t border-gray-800 text-center text-xs">
-          © {new Date().getFullYear()} SmartMeters.ro. {t('footer.rights')}
+          © {new Date().getFullYear()} SmartMeter.ro. {t('footer.rights')}
         </div>
       </footer>
     </div>

@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product, CartItem, Discount } from '../types';
-import { DISCOUNTS } from '../constants';
 
 interface CartContextType {
   items: CartItem[];
@@ -12,7 +11,7 @@ interface CartContextType {
   total: number;
   discountCode: string | null;
   discountValue: number;
-  applyDiscount: (code: string) => boolean;
+  applyDiscount: (code: string) => Promise<boolean>;
   removeDiscount: () => void;
 }
 
@@ -20,14 +19,15 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('smartmeters_cart');
+    const saved = localStorage.getItem('smartmeter_cart');
     return saved ? JSON.parse(saved) : [];
   });
   
   const [discountCode, setDiscountCode] = useState<string | null>(null);
+  const [activeDiscount, setActiveDiscount] = useState<Discount | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('smartmeters_cart', JSON.stringify(items));
+    localStorage.setItem('smartmeter_cart', JSON.stringify(items));
   }, [items]);
 
   const addToCart = (product: Product, quantity: number) => {
@@ -56,37 +56,45 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const clearCart = () => {
     setItems([]);
     setDiscountCode(null);
+    setActiveDiscount(null);
   };
 
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   
   // Calculate Discount
   let discountValue = 0;
-  if (discountCode) {
-    const discount = DISCOUNTS.find(d => d.code === discountCode);
-    if (discount) {
-      if (discount.type === 'percent') {
-        discountValue = (subtotal * discount.value) / 100;
+  if (activeDiscount) {
+      if (activeDiscount.type === 'percent') {
+        discountValue = (subtotal * activeDiscount.value) / 100;
       } else {
-        discountValue = discount.value;
+        discountValue = activeDiscount.value;
       }
-    }
   }
 
   // Ensure total doesn't go below 0
   const total = Math.max(0, subtotal - discountValue);
 
-  const applyDiscount = (code: string): boolean => {
-    const valid = DISCOUNTS.find(d => d.code === code);
-    if (valid) {
-      setDiscountCode(code);
-      return true;
+  const applyDiscount = async (code: string): Promise<boolean> => {
+    try {
+        const response = await fetch(`/api/validate-discount?code=${encodeURIComponent(code)}`);
+        if (response.ok) {
+            const discountData: Discount = await response.json();
+            setDiscountCode(discountData.code);
+            setActiveDiscount(discountData);
+            return true;
+        } else {
+            console.warn("Discount invalid");
+            return false;
+        }
+    } catch (err) {
+        console.error("Error validating discount", err);
+        return false;
     }
-    return false;
   };
 
   const removeDiscount = () => {
     setDiscountCode(null);
+    setActiveDiscount(null);
   };
 
   return (

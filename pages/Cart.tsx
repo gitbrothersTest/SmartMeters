@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Trash2, ArrowLeft, ArrowRight, Tag } from 'lucide-react';
+import { Trash2, ArrowLeft, ArrowRight, Tag, Loader2 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -20,9 +20,16 @@ const Cart: React.FC = () => {
   const navigate = useNavigate();
   const [promoInput, setPromoInput] = useState('');
   const [promoError, setPromoError] = useState('');
+  const [isValidating, setIsValidating] = useState(false);
 
-  const handleApplyDiscount = () => {
-    const success = applyDiscount(promoInput);
+  const handleApplyDiscount = async () => {
+    if (!promoInput.trim()) return;
+    setIsValidating(true);
+    setPromoError('');
+    
+    const success = await applyDiscount(promoInput);
+    
+    setIsValidating(false);
     if (success) {
       setPromoInput('');
       setPromoError('');
@@ -153,13 +160,15 @@ const Cart: React.FC = () => {
                             placeholder={t('cart.code_placeholder')}
                             value={promoInput}
                             onChange={(e) => setPromoInput(e.target.value)}
-                            className="flex-grow border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-accent"
+                            disabled={isValidating}
+                            className="flex-grow border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-accent disabled:bg-gray-100"
                           />
                           <button 
                             onClick={handleApplyDiscount}
-                            className="bg-gray-800 text-white px-4 py-2 rounded text-sm hover:bg-gray-700"
+                            disabled={isValidating || !promoInput}
+                            className="bg-gray-800 text-white px-4 py-2 rounded text-sm hover:bg-gray-700 disabled:opacity-50 flex items-center gap-2"
                           >
-                            {t('cart.apply')}
+                            {isValidating ? <Loader2 size={14} className="animate-spin" /> : t('cart.apply')}
                           </button>
                       </div>
                       {promoError && <p className="text-red-500 text-xs mt-1">{promoError}</p>}

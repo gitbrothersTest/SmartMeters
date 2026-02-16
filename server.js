@@ -49,7 +49,8 @@ app.use('/product-images', (req, res, next) => {
 
     // SKU is the path without the leading slash
     const sku = req.path.substring(1); 
-    const extensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+    // Updated extensions list to include uppercase variations for Linux case sensitivity
+    const extensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.PNG', '.JPG', '.JPEG', '.WEBP', '.GIF'];
     
     // Check if external path exists
     if (fs.existsSync(PRODUCT_IMAGES_PATH)) {

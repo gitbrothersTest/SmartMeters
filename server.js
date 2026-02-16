@@ -34,8 +34,30 @@ const envPath = path.join(__dirname, '.env');
 require('dotenv').config({ path: envPath });
 
 // --- SERVE EXTERNAL IMAGES (SMART RESOLVER) ---
-// Map web URL /product-images to server path /home/smartmet/images/SmartMeters/Products
-const PRODUCT_IMAGES_PATH = '/home/smartmet/images/SmartMeters/Products';
+// Priority 1: Path from .env
+// Priority 2: Hardcoded Production Path
+const EXTERNAL_IMAGES_PATH = process.env.PRODUCT_IMAGES_PATH || '/home/smartmet/images/SmartMeters/Products';
+const LOCAL_IMAGES_PATH = path.join(__dirname, 'public/images/products');
+
+// Helper to convert DB absolute path to Web URL
+const normalizeImageUrl = (dbPath) => {
+    if (!dbPath) return '';
+    
+    // If it's already a web URL (http/https), leave it
+    if (dbPath.startsWith('http')) return dbPath;
+
+    // If it's the absolute server path, replace it with the web alias
+    if (dbPath.startsWith(EXTERNAL_IMAGES_PATH)) {
+        return dbPath.replace(EXTERNAL_IMAGES_PATH, '/product-images');
+    }
+    
+    // If it's already a relative path but misses the alias (fallback)
+    if (!dbPath.startsWith('/product-images') && !dbPath.startsWith('/')) {
+        return `/product-images/${dbPath}`;
+    }
+
+    return dbPath;
+};
 
 // Middleware to find image with extension if URL doesn't have one
 app.use('/product-images', (req, res, next) => {
@@ -52,40 +74,56 @@ app.use('/product-images', (req, res, next) => {
     // Updated extensions list to include uppercase variations for Linux case sensitivity
     const extensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.PNG', '.JPG', '.JPEG', '.WEBP', '.GIF'];
     
-    // Check if external path exists
-    if (fs.existsSync(PRODUCT_IMAGES_PATH)) {
-        // Try finding the file with various extensions
+    let foundPath = null;
+
+    // 1. Check External Path
+    if (fs.existsSync(EXTERNAL_IMAGES_PATH)) {
         for (const ext of extensions) {
-            const fullPath = path.join(PRODUCT_IMAGES_PATH, sku + ext);
-            if (fs.existsSync(fullPath) && fs.lstatSync(fullPath).isFile()) {
-                return res.sendFile(fullPath);
+            const testPath = path.join(EXTERNAL_IMAGES_PATH, sku + ext);
+            if (fs.existsSync(testPath) && fs.lstatSync(testPath).isFile()) {
+                foundPath = testPath;
+                break;
             }
         }
     }
     
-    // If not found in external path, check local development path (public/images/products)
-    const localPath = path.join(__dirname, 'public/images/products');
-    if (fs.existsSync(localPath)) {
+    // 2. Check Local Development Path if not found externally
+    if (!foundPath && fs.existsSync(LOCAL_IMAGES_PATH)) {
         for (const ext of extensions) {
-            const fullPath = path.join(localPath, sku + ext);
-            if (fs.existsSync(fullPath) && fs.lstatSync(fullPath).isFile()) {
-                return res.sendFile(fullPath);
+            const testPath = path.join(LOCAL_IMAGES_PATH, sku + ext);
+            if (fs.existsSync(testPath) && fs.lstatSync(testPath).isFile()) {
+                foundPath = testPath;
+                break;
             }
         }
+    }
+
+    if (foundPath) {
+        if (DEBUG_LEVEL > 0) console.log(`[Image Resolver] Found: ${sku} -> ${foundPath}`);
+        return res.sendFile(foundPath);
+    } else {
+        if (DEBUG_LEVEL > 0) console.log(`[Image Resolver] MISSING: ${sku} (Checked: ${EXTERNAL_IMAGES_PATH} & ${LOCAL_IMAGES_PATH})`);
     }
 
     next();
 });
 
-if (fs.existsSync(PRODUCT_IMAGES_PATH)) {
-    console.log(`[Server] Mapping /product-images to ${PRODUCT_IMAGES_PATH}`);
-    app.use('/product-images', express.static(PRODUCT_IMAGES_PATH));
+// Serve static directories if they exist (for direct access with extension)
+if (fs.existsSync(EXTERNAL_IMAGES_PATH)) {
+    console.log(`[Server] Serving external images from: ${EXTERNAL_IMAGES_PATH}`);
+    app.use('/product-images', express.static(EXTERNAL_IMAGES_PATH));
+}
+
+if (fs.existsSync(LOCAL_IMAGES_PATH)) {
+    console.log(`[Server] Serving local images from: ${LOCAL_IMAGES_PATH}`);
+    app.use('/product-images', express.static(LOCAL_IMAGES_PATH));
 } else {
-    console.warn(`[Server] WARNING: Image directory ${PRODUCT_IMAGES_PATH} does not exist. Images may not load.`);
-    // Fallback for development/local testing
-    const localImagesPath = path.join(__dirname, 'public/images/products');
-    if (fs.existsSync(localImagesPath)) {
-        app.use('/product-images', express.static(localImagesPath));
+    // Create the directory if it doesn't exist (helpful for dev)
+    try {
+        fs.mkdirSync(LOCAL_IMAGES_PATH, { recursive: true });
+        console.log(`[Server] Created local image directory: ${LOCAL_IMAGES_PATH}`);
+    } catch(e) {
+        console.error(`[Server] Could not create local image directory: ${e.message}`);
     }
 }
 
@@ -211,7 +249,7 @@ app.get('/api/products', async (req, res) => {
             shortDescription: typeof p.short_description === 'string' ? JSON.parse(p.short_description) : p.short_description,
             fullDescription: typeof p.full_description === 'string' ? JSON.parse(p.full_description) : p.full_description,
             specs: typeof p.specs === 'string' ? JSON.parse(p.specs) : p.specs,
-            image: p.image_url,
+            image: normalizeImageUrl(p.image_url), // Apply URL normalization here
             stockStatus: p.stock_status,
             datasheetUrl: p.datasheet_url
         }));
@@ -234,7 +272,7 @@ app.get('/api/products/:id', async (req, res) => {
             shortDescription: typeof p.short_description === 'string' ? JSON.parse(p.short_description) : p.short_description,
             fullDescription: typeof p.full_description === 'string' ? JSON.parse(p.full_description) : p.full_description,
             specs: typeof p.specs === 'string' ? JSON.parse(p.specs) : p.specs,
-            image: p.image_url,
+            image: normalizeImageUrl(p.image_url), // Apply URL normalization here
             stockStatus: p.stock_status,
             datasheetUrl: p.datasheet_url
         };

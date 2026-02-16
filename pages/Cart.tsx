@@ -39,11 +39,6 @@ const Cart: React.FC = () => {
     }
   };
 
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    e.currentTarget.src = 'https://picsum.photos/100/100?grayscale&blur=2';
-    e.currentTarget.alt = 'Image not available';
-  };
-
   if (items.length === 0) {
     return (
       <div className="container mx-auto px-4 py-20 text-center">
@@ -80,7 +75,6 @@ const Cart: React.FC = () => {
                         <img 
                             src={item.image} 
                             alt={item.name} 
-                            onError={handleImageError}
                             className="max-w-full max-h-full p-1 mix-blend-multiply" 
                         />
                       </div>

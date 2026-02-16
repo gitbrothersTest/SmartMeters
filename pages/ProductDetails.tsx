@@ -14,11 +14,6 @@ const ProductDetails: React.FC = () => {
 
   const product = products.find(p => p.id === id);
 
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    e.currentTarget.src = 'https://picsum.photos/500/500?grayscale&blur=2';
-    e.currentTarget.alt = 'Image not available';
-  };
-
   if (!product) {
     return (
       <div className="container mx-auto px-4 py-20 text-center">
@@ -43,7 +38,6 @@ const ProductDetails: React.FC = () => {
               <img 
                 src={product.image} 
                 alt={product.name}
-                onError={handleImageError} 
                 className="max-h-[500px] w-auto object-contain mix-blend-multiply"
               />
             </div>

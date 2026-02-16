@@ -14,18 +14,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { t, language } = useLanguage();
   const { addToCart } = useCart();
 
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    e.currentTarget.src = 'https://picsum.photos/400/400?grayscale&blur=2'; // Generic placeholder
-    e.currentTarget.alt = 'Image not available';
-  };
-
   return (
     <div className="bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden group">
       <div className="relative h-64 overflow-hidden bg-gray-50 flex items-center justify-center p-4">
         <img
           src={product.image}
           alt={product.name}
-          onError={handleImageError}
           className="max-h-full max-w-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute top-2 right-2">

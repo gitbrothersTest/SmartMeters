@@ -4,12 +4,30 @@ const nodemailer = require('nodemailer');
 const mysql = require('mysql2/promise');
 const fs = require('fs');
 
+// --- DEBUG CONFIGURATION ---
+// STRICTLY retrieved from environment. Default to 0 (OFF).
+const DEBUG_LEVEL = parseInt(process.env.DEBUG_LEVEL || '0', 10);
+
+const logDebug = (section, message, data = null) => {
+    if (DEBUG_LEVEL > 0) {
+        const timestamp = new Date().toISOString();
+        console.log(`[${timestamp}] [DEBUG] [${section}] ${message}`);
+        if (data && DEBUG_LEVEL > 1) {
+            // Level 2 includes data dumping
+            console.log(JSON.stringify(data, null, 2));
+        }
+    }
+};
+// ---------------------------
+
 const app = express();
 app.use(express.json());
 
 // Logger Middleware
 app.use((req, res, next) => {
-    console.log(`[Request] ${req.method} ${req.url}`);
+    if (DEBUG_LEVEL > 0) {
+        console.log(`[Request] ${req.method} ${req.url}`);
+    }
     next();
 });
 
@@ -19,10 +37,12 @@ const dotenvResult = require('dotenv').config({ path: envPath });
 
 if (dotenvResult.error) {
     console.log(`[SmartMeter Log] INFO: Nu s-a găsit fișierul .env. Se folosesc variabilele de mediu existente.`);
+} else {
+    logDebug('CONFIG', '.env file loaded successfully.');
 }
 
 // 2. Configurare Bază de Date (Connection Pool)
-const pool = mysql.createPool({
+const dbConfig = {
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER,
     password: process.env.DB_PASS,
@@ -31,18 +51,26 @@ const pool = mysql.createPool({
     connectionLimit: 10,
     queueLimit: 0,
     decimalNumbers: true
-});
+};
+
+// Security: Never log the password even in debug mode
+const safeDbConfig = { ...dbConfig, password: '***REDACTED***' };
+logDebug('DATABASE', 'Initializing pool with config:', safeDbConfig);
+
+const pool = mysql.createPool(dbConfig);
 
 // Helper pentru a testa conexiunea la pornire
 (async () => {
     try {
         const connection = await pool.getConnection();
         console.log('[MySQL] Conexiune reușită la baza de date!');
+        logDebug('DATABASE', 'Initial connection test passed.');
         connection.release();
     } catch (err) {
         console.error('------------------------------------------------');
         console.error('[MySQL] EROARE CRITICĂ LA CONECTARE:');
         console.error(`Mesaj: ${err.message}`);
+        if (DEBUG_LEVEL > 0) console.error(err.stack);
         console.error('Verificați dacă serviciul MySQL rulează și credențialele din .env sunt corecte.');
         console.error('------------------------------------------------');
     }
@@ -52,6 +80,7 @@ const pool = mysql.createPool({
 app.get('/api/products', async (req, res) => {
     try {
         const { category, manufacturer, protocol, search } = req.query;
+        logDebug('API_PRODUCTS', 'Fetching products with filters:', { category, manufacturer, protocol, search });
         
         let query = 'SELECT * FROM products WHERE 1=1';
         const params = [];
@@ -75,7 +104,10 @@ app.get('/api/products', async (req, res) => {
 
         query += ' ORDER BY created_at DESC';
 
+        logDebug('API_PRODUCTS', 'Executing Query:', query);
+
         const [rows] = await pool.execute(query, params);
+        logDebug('API_PRODUCTS', `Found ${rows.length} products.`);
 
         const products = rows.map(p => ({
             ...p,
@@ -90,14 +122,19 @@ app.get('/api/products', async (req, res) => {
         res.json(products);
     } catch (err) {
         console.error('[API Products] Error:', err);
+        if (DEBUG_LEVEL > 0) console.error(err.stack);
         res.status(500).json({ error: 'Eroare server la încărcarea produselor. Verificați conexiunea la baza de date.' });
     }
 });
 
 app.get('/api/products/:id', async (req, res) => {
     try {
+        logDebug('API_PRODUCTS', `Fetching details for product ID: ${req.params.id}`);
         const [rows] = await pool.execute('SELECT * FROM products WHERE id = ?', [req.params.id]);
-        if (rows.length === 0) return res.status(404).json({ error: 'Produs inexistent' });
+        if (rows.length === 0) {
+            logDebug('API_PRODUCTS', 'Product not found');
+            return res.status(404).json({ error: 'Produs inexistent' });
+        }
 
         const p = rows[0];
         const product = {
@@ -111,6 +148,7 @@ app.get('/api/products/:id', async (req, res) => {
         };
         res.json(product);
     } catch (err) {
+        logDebug('API_PRODUCTS', 'Error fetching product details', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -119,6 +157,8 @@ app.get('/api/products/:id', async (req, res) => {
 app.get('/api/validate-discount', async (req, res) => {
     try {
         const { code } = req.query;
+        logDebug('API_DISCOUNT', `Validating code: ${code}`);
+        
         if (!code) return res.status(400).json({ error: 'Cod lipsă' });
 
         // Presupunem tabela 'discounts' cu coloanele: code, type ('percent'|'fixed'), value, is_active
@@ -128,13 +168,16 @@ app.get('/api/validate-discount', async (req, res) => {
         );
 
         if (rows.length > 0) {
+            logDebug('API_DISCOUNT', 'Code valid', rows[0]);
             res.json(rows[0]);
         } else {
+            logDebug('API_DISCOUNT', 'Code invalid or expired');
             res.status(404).json({ error: 'Cod invalid sau expirat' });
         }
     } catch (err) {
         console.error('[API Discount] Error:', err);
         // Fallback pentru demo dacă nu există tabela
+        logDebug('API_DISCOUNT', 'DB Check failed, falling back to static codes for demo.');
         if (code === 'B2B10') res.json({ code: 'B2B10', type: 'percent', value: 10 });
         else if (code === 'WELCOME50') res.json({ code: 'WELCOME50', type: 'fixed', value: 50 });
         else res.status(500).json({ error: 'Eroare la validarea codului.' });
@@ -146,6 +189,8 @@ app.get('/api/my-orders', async (req, res) => {
     try {
         const { token } = req.query;
         if (!token) return res.status(400).json({ error: 'Token missing' });
+        
+        logDebug('API_MY_ORDERS', `Fetching orders for token: ${token.substring(0, 5)}...`);
 
         // Selectăm comenzile
         const [orders] = await pool.execute(
@@ -165,7 +210,9 @@ app.get('/api/my-orders', async (req, res) => {
             try {
                 if(typeof order.billing_details === 'string') order.billing_details = JSON.parse(order.billing_details);
                 if(typeof order.shipping_details === 'string') order.shipping_details = JSON.parse(order.shipping_details);
-            } catch(e) {}
+            } catch(e) {
+                logDebug('API_MY_ORDERS', 'Error parsing JSON details', e);
+            }
         }
 
         res.json(orders);
@@ -181,6 +228,8 @@ app.post('/api/orders', async (req, res) => {
     try {
         const { email, billing, shipping, items, totals, order_notes, clientToken } = req.body;
         const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+        logDebug('API_ORDERS', 'Received new order request', { email, total: totals.total, itemCount: items.length });
 
         await conn.beginTransaction();
 
@@ -206,6 +255,7 @@ app.post('/api/orders', async (req, res) => {
         );
 
         const orderId = orderResult.insertId;
+        logDebug('API_ORDERS', `Order created in DB with ID: ${orderId}, Number: ${orderNumber}`);
 
         const itemValues = [];
         const placeholders = items.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
@@ -230,16 +280,21 @@ app.post('/api/orders', async (req, res) => {
         }
 
         await conn.commit();
+        logDebug('API_ORDERS', 'Transaction committed successfully.');
 
         // RE-ENABLED EMAIL SENDING TO ADMIN ONLY
         // Asynchronously send email to avoid blocking the response
-        sendOrderEmail(orderNumber, req.body).catch(err => console.error("Email error:", err));
+        sendOrderEmail(orderNumber, req.body).catch(err => {
+            console.error("Email error:", err);
+            logDebug('API_ORDERS', 'Email sending failed', err);
+        });
 
         res.status(201).json({ success: true, orderNumber, message: 'Comanda a fost înregistrată.' });
 
     } catch (err) {
         await conn.rollback();
         console.error('[API Order] Transaction Error:', err);
+        logDebug('API_ORDERS', 'Transaction rolled back due to error', err);
         res.status(500).json({ error: 'Eroare la procesarea comenzii.' });
     } finally {
         conn.release();
@@ -250,6 +305,7 @@ app.post('/api/orders', async (req, res) => {
 app.post('/api/contact', async (req, res) => {
     try {
         const { name, email, message } = req.body;
+        logDebug('API_CONTACT', `Received contact message from ${email}`);
 
         if (!name || !email || !message) {
             return res.status(400).json({ error: 'Toate câmpurile sunt obligatorii.' });
@@ -293,17 +349,20 @@ app.post('/api/contact', async (req, res) => {
 
         await transporter.sendMail(mailOptions);
         console.log(`[Email] Contact form message sent from ${email}`);
+        logDebug('API_CONTACT', 'Email dispatched successfully.');
 
         res.status(200).json({ success: true, message: 'Mesajul a fost trimis.' });
 
     } catch (err) {
         console.error('[API Contact] Error:', err);
+        logDebug('API_CONTACT', 'Failed to send email', err);
         res.status(500).json({ error: 'Eroare la trimiterea mesajului.' });
     }
 });
 
 async function sendOrderEmail(orderNumber, data) {
     const { items, billing, shipping, totals, email, order_notes } = data;
+    logDebug('EMAIL_SERVICE', `Preparing order email for #${orderNumber}`);
     
     const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
@@ -449,6 +508,7 @@ async function sendOrderEmail(orderNumber, data) {
 
     await transporter.sendMail(mailOptions);
     console.log(`[Email] Notification sent to ADMIN for order ${orderNumber}`);
+    logDebug('EMAIL_SERVICE', `Email successfully sent for #${orderNumber}`);
 }
 
 app.use(express.static(path.join(__dirname, 'dist')));
@@ -460,4 +520,5 @@ app.get('*', (req, res) => {
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`Serverul SmartMeter rulează pe portul ${PORT} cu MySQL Pool.`);
+    logDebug('SERVER', `Server started on port ${PORT}`);
 });

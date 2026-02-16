@@ -5,6 +5,9 @@ import { useLanguage } from '../context/LanguageContext';
 import { BillingDetails } from '../types';
 import { CheckCircle } from 'lucide-react';
 
+// STRICTLY retrieved from env
+const DEBUG_LEVEL = parseInt(process.env.DEBUG_LEVEL || '0', 10);
+
 const Checkout: React.FC = () => {
   const { items, total, subtotal, discountCode, discountValue, clearCart } = useCart();
   const { t } = useLanguage();
@@ -86,6 +89,14 @@ const Checkout: React.FC = () => {
         clientToken: clientToken // Sending token for history tracking
     };
 
+    if (DEBUG_LEVEL > 0) {
+        console.log('[Checkout] Submitting order payload...');
+        if (DEBUG_LEVEL > 1) {
+            // Safe to log addresses as they aren't critical secrets like passwords, but still handle with care
+            console.log(JSON.stringify({ ...payload, clientToken: '***' }, null, 2));
+        }
+    }
+
     try {
         // Updated endpoint to match server.js definition
         const response = await fetch('/api/orders', {
@@ -99,6 +110,7 @@ const Checkout: React.FC = () => {
         const data = await response.json();
 
         if (response.ok) {
+             if (DEBUG_LEVEL > 0) console.log('[Checkout] Success. Order ID:', data.orderNumber);
              setSubmitted(true);
              clearCart();
         } else {
@@ -106,6 +118,7 @@ const Checkout: React.FC = () => {
         }
     } catch (error: any) {
         console.error("Order submission failed", error);
+        if (DEBUG_LEVEL > 0) console.error('[Checkout] API Error Detail:', error);
         alert(`Eroare la trimitere: ${error.message || "Verificați conexiunea."}`);
     } finally {
         setIsSubmitting(false);

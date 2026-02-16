@@ -1,6 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product, CartItem, Discount } from '../types';
 
+// STRICTLY retrieved from env
+const DEBUG_LEVEL = parseInt(process.env.DEBUG_LEVEL || '0', 10);
+
+const logDebug = (action: string, details?: any) => {
+    if (DEBUG_LEVEL > 0) {
+        console.log(`[CartContext] ${action}`, details || '');
+    }
+};
+
 interface CartContextType {
   items: CartItem[];
   addToCart: (product: Product, quantity: number) => void;
@@ -31,6 +40,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [items]);
 
   const addToCart = (product: Product, quantity: number) => {
+    logDebug('AddToCart', { sku: product.sku, qty: quantity });
     setItems(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
@@ -43,6 +53,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const removeFromCart = (productId: string) => {
+    logDebug('RemoveFromCart', productId);
     setItems(prev => prev.filter(item => item.id !== productId));
   };
 
@@ -54,6 +65,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const clearCart = () => {
+    logDebug('ClearCart');
     setItems([]);
     setDiscountCode(null);
     setActiveDiscount(null);
@@ -75,10 +87,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const total = Math.max(0, subtotal - discountValue);
 
   const applyDiscount = async (code: string): Promise<boolean> => {
+    logDebug('ApplyDiscount Attempt', code);
     try {
         const response = await fetch(`/api/validate-discount?code=${encodeURIComponent(code)}`);
         if (response.ok) {
             const discountData: Discount = await response.json();
+            logDebug('Discount Validated', discountData);
             setDiscountCode(discountData.code);
             setActiveDiscount(discountData);
             return true;

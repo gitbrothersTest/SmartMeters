@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { Mail, MapPin, CheckCircle, Send } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
+// STRICTLY retrieved from env
+const DEBUG_LEVEL = parseInt(process.env.DEBUG_LEVEL || '0', 10);
+
 const Contact: React.FC = () => {
   const { t } = useLanguage();
   const [formData, setFormData] = useState({
@@ -23,6 +26,7 @@ const Contact: React.FC = () => {
     if (!formData.name || !formData.email || !formData.message) return;
 
     setStatus('submitting');
+    if (DEBUG_LEVEL > 0) console.log('[Contact] Submitting form', { email: formData.email });
 
     try {
       const response = await fetch('/api/contact', {
@@ -32,13 +36,16 @@ const Contact: React.FC = () => {
       });
 
       if (response.ok) {
+        if (DEBUG_LEVEL > 0) console.log('[Contact] Submission successful');
         setStatus('success');
         setFormData({ name: '', email: '', message: '' });
       } else {
+        if (DEBUG_LEVEL > 0) console.warn('[Contact] Submission failed', response.status);
         setStatus('error');
       }
     } catch (error) {
       console.error('Contact form error:', error);
+      if (DEBUG_LEVEL > 0) console.error('[Contact] Exception', error);
       setStatus('error');
     }
   };

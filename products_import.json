@@ -1,0 +1,127 @@
+
+[
+  {
+    "sku": "KAM-MULTICAL-603",
+    "name": "Kamstrup MULTICAL® 603",
+    "category": "THERMAL",
+    "manufacturer": "Kamstrup",
+    "series": "MULTICAL",
+    "mounting": "Configurabil (Tur/Retur)",
+    "protocol": "Modular (Auto Detect)",
+    "max_capacity": 15000.00,
+    "price": 0.00,
+    "currency": "RON",
+    "stock_status": "on_request",
+    "image_url": "/product-images/KAM-MULTICAL-603",
+    "datasheet_url": "https://kamstrup-delivery.sitecorecontenthub.cloud/api/public/content/62135-downloadOriginal?v=868fb93d",
+    "short_description": {
+      "ro": "Calculator de energie termică versatil, cu detectare automată a modulelor de comunicație.",
+      "en": "Versatile heat energy calculator with automatic communication module detection."
+    },
+    "full_description": {
+      "ro": "MULTICAL® 603 este standardul industrial pentru flexibilitate. Permite upgrade-uri de firmware și schimbarea modulelor de comunicație fără a necesita scule sau recitire manuală. Include funcții avansate de detectare a scurgerilor.",
+      "en": "MULTICAL® 603 is the industry standard for flexibility. Allows firmware upgrades and communication module changes without tools or manual rereading. Includes advanced leak detection features."
+    },
+    "specs": {
+      "Debit (qp)": "0.6 ... 15000 m³/h",
+      "Precizie": "EN 1434 Clasa 2",
+      "Alimentare": "Baterie D (16 ani) sau 230VAC",
+      "IP": "IP65",
+      "Comunicație": "2 sloturi modulare + M-Bus integrat",
+      "Display": "8 cifre cu simboluri grafice"
+    }
+  },
+  {
+    "sku": "KAM-MULTICAL-403",
+    "name": "Kamstrup MULTICAL® 403",
+    "category": "THERMAL",
+    "manufacturer": "Kamstrup",
+    "series": "MULTICAL",
+    "mounting": "Configurabil la instalare",
+    "protocol": "M-Bus / Wireless M-Bus / Modbus",
+    "max_capacity": 15.00,
+    "price": 0.00,
+    "currency": "RON",
+    "stock_status": "on_request",
+    "image_url": "/product-images/KAM-MULTICAL-403",
+    "datasheet_url": "N/A",
+    "short_description": {
+      "ro": "Contor de energie termică compact pentru sectorul rezidențial.",
+      "en": "Compact heat meter for the residential sector."
+    },
+    "full_description": {
+      "ro": "MULTICAL® 403 oferă tehnologie ultrasonică de ultimă generație într-un format redus. Ideal pentru apartamente și clădiri rezidențiale. Permite configurarea la fața locului (tur/retur, unități de măsură).",
+      "en": "MULTICAL® 403 offers state-of-the-art ultrasonic technology in a small footprint. Ideal for apartments and residential buildings. Allows on-site configuration (inlet/outlet, measurement units)."
+    },
+    "specs": {
+      "Debit (qp)": "0.6 ... 15 m³/h",
+      "Precizie": "EN 1434 Clasa 2",
+      "Diametru Nominal": "DN15 ... DN50",
+      "IP Calculator": "IP54",
+      "Baterie": "Până la 16 ani (durată de viață)",
+      "Senzori Temp": "Pt100 / Pt500 (2 fire)"
+    }
+  },
+  {
+    "sku": "KAM-MULTICAL-803",
+    "name": "Kamstrup MULTICAL® 803",
+    "category": "THERMAL",
+    "manufacturer": "Kamstrup",
+    "series": "MULTICAL",
+    "mounting": "Industrial",
+    "protocol": "Multi-Comunicare (4 sloturi)",
+    "max_capacity": 15000.00,
+    "price": 0.00,
+    "currency": "RON",
+    "stock_status": "on_request",
+    "image_url": "/product-images/KAM-MULTICAL-803",
+    "datasheet_url": "N/A",
+    "short_description": {
+      "ro": "Soluție High-End pentru industrie și distribuție termică, cu protecție IP65 completă.",
+      "en": "High-End solution for industry and district heating, with full IP65 protection."
+    },
+    "full_description": {
+      "ro": "MULTICAL® 803 este proiectat pentru mediile dure. Suportă 4 module de comunicație simultan (ex: M-Bus și 4G în același timp) și citiri de date la frecvență ridicată fără a afecta bateria.",
+      "en": "MULTICAL® 803 is designed for harsh environments. Supports 4 communication modules simultaneously (e.g., M-Bus and 4G at the same time) and high-frequency data reading without impacting battery life."
+    },
+    "specs": {
+      "Debit (qp)": "0.6 ... 15000 m³/h",
+      "Alimentare": "24VAC / 230VAC (High Power)",
+      "Sloturi Module": "4 sloturi active",
+      "Protecție": "IP65 (Praf și jeturi de apă)",
+      "Data Logger": "Memorie extinsă programabilă",
+      "Backlight": "Display iluminat automat"
+    }
+  },
+  {
+    "sku": "KAM-MULTICAL-303",
+    "name": "Kamstrup MULTICAL® 303",
+    "category": "THERMAL",
+    "manufacturer": "Kamstrup",
+    "series": "MULTICAL",
+    "mounting": "Universal (Oricare poziție)",
+    "protocol": "M-Bus / Wireless M-Bus",
+    "max_capacity": 2.50,
+    "price": 0.00,
+    "currency": "RON",
+    "stock_status": "on_request",
+    "image_url": "/product-images/KAM-MULTICAL-303",
+    "datasheet_url": "N/A",
+    "short_description": {
+      "ro": "Cel mai mic contor ultrasonic de căldură și răcire.",
+      "en": "The smallest ultrasonic heat and cooling meter."
+    },
+    "full_description": {
+      "ro": "MULTICAL® 303 este extrem de compact, permițând instalarea în cele mai înguste spații. Senzorul de debit IP68 permite montajul chiar și în medii cu condens ridicat.",
+      "en": "MULTICAL® 303 is extremely compact, allowing installation in the tightest spaces. The IP68 flow sensor allows mounting even in high condensation environments."
+    },
+    "specs": {
+      "Debit (qp)": "0.6 ... 2.5 m³/h",
+      "Precizie": "Clasa 2",
+      "Dimensiuni": "DN15 / DN20",
+      "IP Debitmetru": "IP68 (Submersibil)",
+      "Baterie": "Până la 16 ani",
+      "Montaj": "Orizontal, vertical sau în unghi"
+    }
+  }
+]

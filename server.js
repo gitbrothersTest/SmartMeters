@@ -1,3 +1,4 @@
+
 const express = require('express');
 const path = require('path');
 const nodemailer = require('nodemailer');
@@ -31,6 +32,21 @@ app.use((req, res, next) => {
 // 1. Configurare Mediu
 const envPath = path.join(__dirname, '.env');
 require('dotenv').config({ path: envPath });
+
+// --- SERVE EXTERNAL IMAGES ---
+// Map web URL /product-images to server path /home/smartmet/images/SmartMeters/Products
+const PRODUCT_IMAGES_PATH = '/home/smartmet/images/SmartMeters/Products';
+if (fs.existsSync(PRODUCT_IMAGES_PATH)) {
+    console.log(`[Server] Mapping /product-images to ${PRODUCT_IMAGES_PATH}`);
+    app.use('/product-images', express.static(PRODUCT_IMAGES_PATH));
+} else {
+    console.warn(`[Server] WARNING: Image directory ${PRODUCT_IMAGES_PATH} does not exist. Images may not load.`);
+    // Fallback for development/local testing if the path doesn't exist
+    const localImagesPath = path.join(__dirname, 'public/images/products');
+    if (fs.existsSync(localImagesPath)) {
+        app.use('/product-images', express.static(localImagesPath));
+    }
+}
 
 // --- DATABASE CONNECTION STRATEGY ---
 let pool;
@@ -327,6 +343,76 @@ app.post('/api/contact', async (req, res) => {
     } catch (err) {
         console.error('[API Contact] Error:', err);
         res.status(500).json({ error: 'Eroare la trimiterea mesajului (SMTP).' });
+    }
+});
+
+// 7. API Admin: Import/Sync Products from JSON
+app.post('/api/admin/import-products', async (req, res) => {
+    try {
+        const productsFile = path.join(__dirname, 'products_import.json');
+        if (!fs.existsSync(productsFile)) {
+            return res.status(404).json({ error: 'products_import.json not found on server' });
+        }
+
+        const fileContent = fs.readFileSync(productsFile, 'utf-8');
+        const products = JSON.parse(fileContent);
+
+        console.log(`[Import] Found ${products.length} products to sync.`);
+
+        const upsertQuery = `
+            INSERT INTO products 
+            (sku, name, category, manufacturer, series, mounting, protocol, max_capacity, price, currency, stock_status, image_url, datasheet_url, short_description, full_description, specs)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE 
+            name = VALUES(name),
+            category = VALUES(category),
+            manufacturer = VALUES(manufacturer),
+            series = VALUES(series),
+            mounting = VALUES(mounting),
+            protocol = VALUES(protocol),
+            max_capacity = VALUES(max_capacity),
+            price = VALUES(price),
+            currency = VALUES(currency),
+            stock_status = VALUES(stock_status),
+            image_url = VALUES(image_url),
+            datasheet_url = VALUES(datasheet_url),
+            short_description = VALUES(short_description),
+            full_description = VALUES(full_description),
+            specs = VALUES(specs),
+            updated_at = CURRENT_TIMESTAMP
+        `;
+
+        let updatedCount = 0;
+
+        for (const p of products) {
+            const params = [
+                p.sku,
+                p.name,
+                p.category,
+                p.manufacturer,
+                p.series || null,
+                p.mounting || null,
+                p.protocol || null,
+                p.max_capacity || null,
+                p.price,
+                p.currency,
+                p.stock_status,
+                p.image_url,
+                p.datasheet_url,
+                JSON.stringify(p.short_description),
+                JSON.stringify(p.full_description),
+                JSON.stringify(p.specs)
+            ];
+
+            await pool.execute(upsertQuery, params);
+            updatedCount++;
+        }
+
+        res.json({ success: true, message: `Successfully synced ${updatedCount} products.` });
+
+    } catch (err) {
+        console.error('[API Import] Error:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 

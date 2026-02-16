@@ -46,37 +46,25 @@ if (useTunnel) {
     pool = {
         execute: async (sql, params) => {
             try {
-                // Trimitem secretul în BODY, nu în header, pentru a evita problemele de hosting
-                const payload = {
-                    sql,
-                    params,
-                    secret: process.env.DB_TUNNEL_SECRET 
-                };
-
                 const response = await fetch(process.env.DB_TUNNEL_URL, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'X-Bridge-Secret': process.env.DB_TUNNEL_SECRET
                     },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({ sql, params })
                 });
 
-                const text = await response.text();
-
                 if (!response.ok) {
+                    const text = await response.text();
                     throw new Error(`Bridge Error (${response.status}): ${text}`);
                 }
 
-                let result;
-                try {
-                    result = JSON.parse(text);
-                } catch (e) {
-                    throw new Error(`Invalid JSON from bridge: ${text.substring(0, 100)}...`);
-                }
-
+                const result = await response.json();
                 if (result.error) throw new Error(result.error);
 
-                // Mimic mysql2 return format: [rows, fields]
+                // Mimic mysql2 return format: [rows, fields] (we omit fields for now)
+                // If it's an insert, structure it properly
                 if (result.insertId !== undefined) {
                     return [{ insertId: result.insertId, affectedRows: result.affectedRows }, null];
                 }
@@ -88,6 +76,11 @@ if (useTunnel) {
             }
         },
         getConnection: async () => {
+            // In HTTP Tunnel mode, we don't have real persistent connections or transactions.
+            // We return a dummy object that just executes queries directly.
+            // WARNING: Transactions (beginTransaction/commit) are NO-OPs here. 
+            // Data integrity isn't guaranteed if a multi-step order fails halfway, 
+            // but this is acceptable for local development.
             return {
                 execute: async (sql, params) => pool.execute(sql, params),
                 beginTransaction: async () => logDebug('TUNNEL', 'Fake Transaction Started'),

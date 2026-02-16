@@ -71,15 +71,17 @@ const Cart: React.FC = () => {
                   <div key={item.id} className="p-4 flex flex-col md:grid md:grid-cols-12 gap-4 items-center">
                     {/* Product Info */}
                     <div className="col-span-6 flex items-center w-full">
-                      <div className="w-16 h-16 flex-shrink-0 bg-gray-50 rounded border border-gray-100 mr-4 flex items-center justify-center">
+                      <Link to={`/product/${item.id}`} className="w-16 h-16 flex-shrink-0 bg-gray-50 rounded border border-gray-100 mr-4 flex items-center justify-center cursor-pointer hover:border-accent transition-colors">
                         <img 
                             src={item.image} 
                             alt={item.name} 
                             className="max-w-full max-h-full p-1 mix-blend-multiply" 
                         />
-                      </div>
+                      </Link>
                       <div>
-                        <h3 className="font-bold text-slate-800">{item.name}</h3>
+                        <Link to={`/product/${item.id}`}>
+                            <h3 className="font-bold text-slate-800 hover:text-accent transition-colors">{item.name}</h3>
+                        </Link>
                         <p className="text-xs text-gray-500">{item.sku}</p>
                       </div>
                     </div>

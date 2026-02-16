@@ -16,7 +16,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden group">
-      <div className="relative h-64 overflow-hidden bg-gray-50 flex items-center justify-center p-4">
+      {/* Image Container - Now Linked */}
+      <Link to={`/product/${product.id}`} className="relative h-64 overflow-hidden bg-gray-50 flex items-center justify-center p-4 cursor-pointer">
         <img
           src={product.image}
           alt={product.name}
@@ -29,7 +30,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 {product.stockStatus === 'in_stock' ? t('product.stock_in') : t('product.stock_request')}
             </span>
         </div>
-      </div>
+      </Link>
       
       <div className="p-4 flex-grow flex flex-col">
         <div className="text-xs text-gray-500 mb-1 uppercase tracking-wide">{product.category}</div>

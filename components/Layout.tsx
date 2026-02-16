@@ -26,8 +26,7 @@ const Layout: React.FC = () => {
         {/* Top Bar - Very Corporate */}
         <div className="bg-primary text-gray-300 text-xs py-2 px-4 md:px-8 flex justify-between items-center">
           <div>
-            <span className="mr-4">support@smartmeter.ro</span>
-            <span>+40 722 000 000</span>
+            <span className="mr-4">adrian.geanta@smartmeter.ro</span>
           </div>
           <div className="flex items-center space-x-4">
             <Link to="/my-orders" className="flex items-center gap-1 hover:text-white cursor-pointer transition-colors">

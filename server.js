@@ -246,6 +246,62 @@ app.post('/api/orders', async (req, res) => {
     }
 });
 
+// 6. API Contact Form
+app.post('/api/contact', async (req, res) => {
+    try {
+        const { name, email, message } = req.body;
+
+        if (!name || !email || !message) {
+            return res.status(400).json({ error: 'Toate câmpurile sunt obligatorii.' });
+        }
+
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: 465,
+            secure: true,
+            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+            tls: { rejectUnauthorized: false }
+        });
+
+        // Email content
+        const htmlContent = `
+        <div style="font-family: sans-serif; padding: 20px; background-color: #f3f4f6;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 8px; border-top: 4px solid #0f172a;">
+                <h2 style="color: #0f172a; margin-top: 0;">Mesaj Nou de pe SmartMeter.ro</h2>
+                <div style="margin: 20px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px;">
+                    <p><strong>Nume:</strong> ${name}</p>
+                    <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+                </div>
+                <div>
+                    <p style="font-weight: bold; color: #334155;">Mesaj:</p>
+                    <p style="white-space: pre-wrap; color: #475569;">${message}</p>
+                </div>
+                <div style="margin-top: 30px; font-size: 12px; color: #94a3b8; text-align: center;">
+                    Acest mesaj a fost trimis prin formularul de contact de pe site.
+                </div>
+            </div>
+        </div>
+        `;
+
+        const mailOptions = {
+            from: `"SmartMeter Contact" <${process.env.SMTP_USER}>`,
+            to: 'adrian.geanta@smartmeter.ro, office.git.brothers@gmail.com', // Send to both
+            replyTo: email,
+            subject: `Mesaj Contact: ${name}`,
+            html: htmlContent
+        };
+
+        await transporter.sendMail(mailOptions);
+        console.log(`[Email] Contact form message sent from ${email}`);
+
+        res.status(200).json({ success: true, message: 'Mesajul a fost trimis.' });
+
+    } catch (err) {
+        console.error('[API Contact] Error:', err);
+        res.status(500).json({ error: 'Eroare la trimiterea mesajului.' });
+    }
+});
+
 async function sendOrderEmail(orderNumber, data) {
     const { items, billing, shipping, totals, email, order_notes } = data;
     
@@ -349,16 +405,21 @@ async function sendOrderEmail(orderNumber, data) {
 
                 <!-- TOTALS -->
                 <div style="margin-top: 20px; text-align: right;">
-                    <p style="margin: 5px 0; font-size: 14px; color: #64748b;">Preț înainte de reducere: ${totals.subtotal} RON</p>
                     ${totals.discount > 0 ? `
+                        <p style="margin: 5px 0; font-size: 14px; color: #64748b;">Preț înainte de reducere: ${totals.subtotal} RON</p>
                         <div style="margin: 5px 0; font-size: 14px; padding: 5px; background-color: #f0fdf4; display: inline-block; border-radius: 4px;">
                             <span style="color: #15803d; font-weight: bold;">Reducere aplicată (${totals.discountCode}):</span> 
                             <span style="color: #16a34a;">-${totals.discount} RON</span>
                         </div>
-                    ` : ''}
-                    <div style="font-size: 24px; font-weight: bold; color: #059669; margin-top: 10px; border-top: 2px solid #e2e8f0; padding-top: 10px;">
-                        TOTAL FINAL (după reducere): ${totals.total} RON
-                    </div>
+                        <div style="font-size: 24px; font-weight: bold; color: #059669; margin-top: 10px; border-top: 2px solid #e2e8f0; padding-top: 10px;">
+                            TOTAL FINAL (după reducere): ${totals.total} RON
+                        </div>
+                    ` : `
+                        <p style="margin: 5px 0; font-size: 14px; color: #64748b;">Subtotal: ${totals.subtotal} RON</p>
+                        <div style="font-size: 24px; font-weight: bold; color: #0f172a; margin-top: 10px; border-top: 2px solid #e2e8f0; padding-top: 10px;">
+                            TOTAL FINAL: ${totals.total} RON
+                        </div>
+                    `}
                 </div>
 
                 <!-- CLIENT DETAILS -->

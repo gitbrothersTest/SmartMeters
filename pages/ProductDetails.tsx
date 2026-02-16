@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, ShoppingCart, FileText, Check, ShieldCheck } from 'lucide-react';
@@ -12,6 +13,11 @@ const ProductDetails: React.FC = () => {
   const { t, language } = useLanguage();
 
   const product = products.find(p => p.id === id);
+
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    e.currentTarget.src = 'https://picsum.photos/500/500?grayscale&blur=2';
+    e.currentTarget.alt = 'Image not available';
+  };
 
   if (!product) {
     return (
@@ -36,7 +42,8 @@ const ProductDetails: React.FC = () => {
             <div className="lg:w-1/2 p-8 bg-white flex items-center justify-center border-b lg:border-b-0 lg:border-r border-gray-100">
               <img 
                 src={product.image} 
-                alt={product.name} 
+                alt={product.name}
+                onError={handleImageError} 
                 className="max-h-[500px] w-auto object-contain mix-blend-multiply"
               />
             </div>

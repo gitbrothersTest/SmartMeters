@@ -33,15 +33,55 @@ app.use((req, res, next) => {
 const envPath = path.join(__dirname, '.env');
 require('dotenv').config({ path: envPath });
 
-// --- SERVE EXTERNAL IMAGES ---
+// --- SERVE EXTERNAL IMAGES (SMART RESOLVER) ---
 // Map web URL /product-images to server path /home/smartmet/images/SmartMeters/Products
 const PRODUCT_IMAGES_PATH = '/home/smartmet/images/SmartMeters/Products';
+
+// Middleware to find image with extension if URL doesn't have one
+app.use('/product-images', (req, res, next) => {
+    // Safety check: prevent directory traversal
+    if (req.path.includes('..')) return res.status(403).send('Forbidden');
+
+    // If the path already has an extension, let express.static handle it or 404
+    if (path.extname(req.path)) {
+        return next();
+    }
+
+    // SKU is the path without the leading slash
+    const sku = req.path.substring(1); 
+    const extensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+    
+    // Check if external path exists
+    if (fs.existsSync(PRODUCT_IMAGES_PATH)) {
+        // Try finding the file with various extensions
+        for (const ext of extensions) {
+            const fullPath = path.join(PRODUCT_IMAGES_PATH, sku + ext);
+            if (fs.existsSync(fullPath) && fs.lstatSync(fullPath).isFile()) {
+                return res.sendFile(fullPath);
+            }
+        }
+    }
+    
+    // If not found in external path, check local development path (public/images/products)
+    const localPath = path.join(__dirname, 'public/images/products');
+    if (fs.existsSync(localPath)) {
+        for (const ext of extensions) {
+            const fullPath = path.join(localPath, sku + ext);
+            if (fs.existsSync(fullPath) && fs.lstatSync(fullPath).isFile()) {
+                return res.sendFile(fullPath);
+            }
+        }
+    }
+
+    next();
+});
+
 if (fs.existsSync(PRODUCT_IMAGES_PATH)) {
     console.log(`[Server] Mapping /product-images to ${PRODUCT_IMAGES_PATH}`);
     app.use('/product-images', express.static(PRODUCT_IMAGES_PATH));
 } else {
     console.warn(`[Server] WARNING: Image directory ${PRODUCT_IMAGES_PATH} does not exist. Images may not load.`);
-    // Fallback for development/local testing if the path doesn't exist
+    // Fallback for development/local testing
     const localImagesPath = path.join(__dirname, 'public/images/products');
     if (fs.existsSync(localImagesPath)) {
         app.use('/product-images', express.static(localImagesPath));

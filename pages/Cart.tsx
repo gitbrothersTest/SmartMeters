@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, ArrowLeft, ArrowRight, Tag, Loader2 } from 'lucide-react';
@@ -38,6 +39,11 @@ const Cart: React.FC = () => {
     }
   };
 
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    e.currentTarget.src = 'https://picsum.photos/100/100?grayscale&blur=2';
+    e.currentTarget.alt = 'Image not available';
+  };
+
   if (items.length === 0) {
     return (
       <div className="container mx-auto px-4 py-20 text-center">
@@ -71,7 +77,12 @@ const Cart: React.FC = () => {
                     {/* Product Info */}
                     <div className="col-span-6 flex items-center w-full">
                       <div className="w-16 h-16 flex-shrink-0 bg-gray-50 rounded border border-gray-100 mr-4 flex items-center justify-center">
-                        <img src={item.image} alt={item.name} className="max-w-full max-h-full p-1 mix-blend-multiply" />
+                        <img 
+                            src={item.image} 
+                            alt={item.name} 
+                            onError={handleImageError}
+                            className="max-w-full max-h-full p-1 mix-blend-multiply" 
+                        />
                       </div>
                       <div>
                         <h3 className="font-bold text-slate-800">{item.name}</h3>

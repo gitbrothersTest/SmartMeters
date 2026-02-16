@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { ShoppingCart, Menu, X, Globe, User } from 'lucide-react';
@@ -26,7 +27,9 @@ const Layout: React.FC = () => {
         {/* Top Bar - Very Corporate */}
         <div className="bg-primary text-gray-300 text-xs py-2 px-4 md:px-8 flex justify-between items-center">
           <div>
-            <span className="mr-4">adrian.geanta@smartmeter.ro</span>
+            <a href="mailto:adrian.geanta@smartmeter.ro" className="mr-4 hover:text-white transition-colors">
+              adrian.geanta@smartmeter.ro
+            </a>
           </div>
           <div className="flex items-center space-x-4">
             <Link to="/my-orders" className="flex items-center gap-1 hover:text-white cursor-pointer transition-colors">

@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, ShoppingCart, FileText, Activity, Layers, Cpu, Server, Wifi, Download, FileCheck } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, FileText, Activity, Layers, Cpu, Server, Wifi, Download, FileCheck, FileQuestion } from 'lucide-react';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -71,6 +71,15 @@ const ProductDetails: React.FC = () => {
   const protocols = typeof product.protocol === 'string' 
     ? product.protocol.split(',').map(s => s.trim()) 
     : Array.isArray(product.protocol) ? product.protocol : [];
+
+  // Generate Request Message
+  const requestMessage = `Buna ziua,
+
+Doresc documentatia pentru produsul ${product.name} cu codul SKU ${product.sku}
+
+#Introduceti si alte detalii daca este nevoie
+
+Va multumesc!`;
 
   return (
     <div className="bg-gray-50 py-12 min-h-screen">
@@ -156,13 +165,14 @@ const ProductDetails: React.FC = () => {
                 </div>
               </div>
 
-              {/* SECTION: Documentation (Conditional) */}
-              {product.datasheetUrl && (
-                  <div className="mb-10">
-                    <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
-                        <FileCheck size={20} className="text-accent" />
-                        Documentație & Fișe Tehnice
-                    </h3>
+              {/* SECTION: Documentation (Dynamic) */}
+              <div className="mb-10">
+                <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
+                    <FileCheck size={20} className="text-accent" />
+                    Documentație & Fișe Tehnice
+                </h3>
+                
+                {product.datasheetUrl && product.datasheetUrl !== 'N/A' ? (
                     <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-center justify-between group hover:border-blue-200 transition-colors">
                         <div className="flex items-center gap-3">
                             <div className="bg-white p-2 rounded border border-blue-100 text-blue-600">
@@ -182,8 +192,26 @@ const ProductDetails: React.FC = () => {
                             <Download size={16} /> {t('product.download')}
                         </a>
                     </div>
-                  </div>
-              )}
+                ) : (
+                    <div className="bg-amber-50 border border-amber-100 rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-white p-2 rounded border border-amber-100 text-amber-600">
+                                <FileQuestion size={24} />
+                            </div>
+                            <div>
+                                <span className="block font-semibold text-slate-800">Documentație Indisponibilă Online</span>
+                                <span className="text-xs text-gray-500">Solicită fișa tehnică direct de la echipa noastră.</span>
+                            </div>
+                        </div>
+                        <Link 
+                            to={`/contact?message=${encodeURIComponent(requestMessage)}`}
+                            className="bg-white text-amber-700 border border-amber-200 px-4 py-2 rounded font-medium text-sm flex items-center gap-2 hover:bg-amber-600 hover:text-white transition-all whitespace-nowrap"
+                        >
+                            Solicită Documentație
+                        </Link>
+                    </div>
+                )}
+              </div>
 
               {/* SECTION: Characteristics & Specs */}
               <div>

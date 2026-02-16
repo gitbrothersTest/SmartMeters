@@ -389,7 +389,7 @@ app.post('/api/orders', async (req, res) => {
 // 6. API Contact Form
 app.post('/api/contact', async (req, res) => {
     try {
-        const { name, email, message } = req.body;
+        const { name, email, phone, message } = req.body;
         if (!name || !email || !message) return res.status(400).json({ error: 'Toate câmpurile sunt obligatorii.' });
 
         const transporter = nodemailer.createTransport({
@@ -405,7 +405,11 @@ app.post('/api/contact', async (req, res) => {
             <h2>Mesaj Nou de pe SmartMeter.ro</h2>
             <p><strong>Nume:</strong> ${name}</p>
             <p><strong>Email:</strong> ${email}</p>
-            <p><strong>Mesaj:</strong> ${message}</p>
+            <p><strong>Telefon:</strong> ${phone || 'N/A'}</p>
+            <p><strong>Mesaj:</strong></p>
+            <blockquote style="background-color: #f5f5f5; padding: 10px; border-left: 4px solid #0f172a;">
+                ${message.replace(/\n/g, '<br>')}
+            </blockquote>
         </div>`;
 
         const mailOptions = {

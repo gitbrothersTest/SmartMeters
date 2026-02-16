@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { Mail, MapPin, CheckCircle, Send } from 'lucide-react';
+
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Mail, MapPin, CheckCircle, Send, Phone } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 // STRICTLY retrieved from env
@@ -7,11 +9,23 @@ const DEBUG_LEVEL = parseInt(process.env.DEBUG_LEVEL || '0', 10);
 
 const Contact: React.FC = () => {
   const { t } = useLanguage();
+  const [searchParams] = useSearchParams();
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     message: ''
   });
+  
+  // Initialize message from URL param if present
+  useEffect(() => {
+    const msg = searchParams.get('message');
+    if (msg) {
+        setFormData(prev => ({ ...prev, message: msg }));
+    }
+  }, [searchParams]);
+
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -38,7 +52,7 @@ const Contact: React.FC = () => {
       if (response.ok) {
         if (DEBUG_LEVEL > 0) console.log('[Contact] Submission successful');
         setStatus('success');
-        setFormData({ name: '', email: '', message: '' });
+        setFormData({ name: '', email: '', phone: '', message: '' });
       } else {
         if (DEBUG_LEVEL > 0) console.warn('[Contact] Submission failed', response.status);
         setStatus('error');
@@ -64,8 +78,16 @@ const Contact: React.FC = () => {
             </div>
             <div>
               <h3 className="font-bold text-lg mb-1">Email</h3>
-              <p className="text-gray-600">adrian.geanta@smartmeter.ro</p>
-              <p className="text-gray-600">office.git.brothers@gmail.com</p>
+              <p className="text-gray-600">
+                <a href="mailto:adrian.geanta@smartmeter.ro" className="hover:text-accent hover:underline transition-colors">
+                    adrian.geanta@smartmeter.ro
+                </a>
+              </p>
+              <p className="text-gray-600">
+                <a href="mailto:office.git.brothers@gmail.com" className="hover:text-accent hover:underline transition-colors">
+                    office.git.brothers@gmail.com
+                </a>
+              </p>
               <p className="text-gray-500 text-sm mt-2">Trimite-ne cererile tale de ofertă.</p>
             </div>
           </div>
@@ -79,6 +101,18 @@ const Contact: React.FC = () => {
               <h3 className="font-bold text-lg mb-1">Sediu</h3>
               <p className="text-gray-600">București, Romania</p>
               <p className="text-gray-500 text-sm mt-2">Depozit central și birouri.</p>
+            </div>
+          </div>
+          
+          {/* Phone Info (Static for now, matches form) */}
+          <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 flex items-start gap-4">
+            <div className="bg-blue-50 p-3 rounded-full text-primary">
+              <Phone size={24} />
+            </div>
+            <div>
+              <h3 className="font-bold text-lg mb-1">Telefon</h3>
+              <p className="text-gray-600">+40 722 000 000</p>
+              <p className="text-gray-500 text-sm mt-2">Luni - Vineri, 09:00 - 17:00</p>
             </div>
           </div>
         </div>
@@ -128,11 +162,22 @@ const Contact: React.FC = () => {
                 />
               </div>
               <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">{t('common.phone')}</label>
+                <input 
+                  type="tel" 
+                  name="phone"
+                  id="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent outline-none transition-shadow" 
+                />
+              </div>
+              <div>
                 <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">Mesaj</label>
                 <textarea 
                   name="message"
                   id="message"
-                  rows={4} 
+                  rows={6} 
                   required
                   value={formData.message}
                   onChange={handleChange}

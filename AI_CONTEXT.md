@@ -1,3 +1,4 @@
+
 # AI DEVELOPMENT CONTEXT & TECHNICAL SPECIFICATION - SmartMeter.ro
 
 > **SYSTEM INSTRUCTION FOR AI AGENTS:**
@@ -36,6 +37,13 @@
     *   Node (`.env`): `DB_TUNNEL_SECRET`
     *   PHP (`db_bridge.php`): `$SECRET_KEY`
     *   *These must match exactly.*
+
+### 2.1 Image Serving Strategy (Path Resolution)
+The system handles a discrepancy between physical file paths and web URLs:
+1.  **Storage:** Images are stored on the server at absolute paths (e.g., `/home/smartmet/images/SmartMeters/Products/SKU-123`).
+2.  **Database:** The `image_url` column in the DB stores this **absolute path**.
+3.  **API Normalization:** When `server.js` serves product data (`/api/products`), it detects absolute paths and converts them to web-accessible URLs (e.g., `/product-images/SKU-123`).
+4.  **Middleware:** A specific route handler in `server.js` listens to `/product-images/:sku`, locates the physical file (checking extensions `.jpg`, `.png`, etc.), and streams it to the browser.
 
 ---
 
@@ -142,13 +150,14 @@ Based on `DESCRIBE` output from the live database.
 *   [x] **Database:** Connection established securely (Secret in Body).
 *   [x] **Frontend:** React structure complete, Responsive UI.
 *   [x] **Core Features:** Filtering, Cart, Checkout, Email Notifications.
+*   [x] **Image Handling:** Backend resolver for absolute paths implemented.
 *   [ ] **Admin:** Currently mock-only. Needs real auth and DB write endpoints.
 
 ### Recent Changelog
-*   **Updated Docs:** Refreshed DB Schema section with exact SQL structure (`products`, `orders`, `order_items`, `discounts`).
-*   **Fixed HTTP Tunnel:** Moved `DB_TUNNEL_SECRET` from Request Headers to Request Body to bypass cPanel firewall stripping.
-*   **Created Context File:** Added `AI_CONTEXT.md` for agent continuity.
-*   **Updated `server.js`:** Implemented tunnel logic specifically for transactions (Mock Transaction for tunnel mode).
+*   **Updated Docs:** Refreshed DB Schema section with exact SQL structure.
+*   **Fixed HTTP Tunnel:** Moved `DB_TUNNEL_SECRET` from Request Headers to Request Body.
+*   **Image Serving:** Updated `server.js` to normalize absolute DB paths (e.g., `/home/smartmet/...`) to web URLs (`/product-images/...`) dynamically in the API response.
+*   **Frontend Cleanup:** Removed `picsum` fallback from React components to rely solely on the server-resolved images.
 
 ---
 *End of Specification.*

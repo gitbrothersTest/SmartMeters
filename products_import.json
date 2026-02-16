@@ -12,7 +12,7 @@
     "price": 0.00,
     "currency": "RON",
     "stock_status": "on_request",
-    "image_url": "/product-images/KAM-MULTICAL-603",
+    "image_url": "/home/smartmet/images/SmartMeters/Products/KAM-MULTICAL-603",
     "datasheet_url": "https://kamstrup-delivery.sitecorecontenthub.cloud/api/public/content/62135-downloadOriginal?v=868fb93d",
     "short_description": {
       "ro": "Calculator de energie termică versatil, cu detectare automată a modulelor de comunicație.",
@@ -43,7 +43,7 @@
     "price": 0.00,
     "currency": "RON",
     "stock_status": "on_request",
-    "image_url": "/product-images/KAM-MULTICAL-403",
+    "image_url": "/home/smartmet/images/SmartMeters/Products/KAM-MULTICAL-403",
     "datasheet_url": "N/A",
     "short_description": {
       "ro": "Contor de energie termică compact pentru sectorul rezidențial.",
@@ -74,7 +74,7 @@
     "price": 0.00,
     "currency": "RON",
     "stock_status": "on_request",
-    "image_url": "/product-images/KAM-MULTICAL-803",
+    "image_url": "/home/smartmet/images/SmartMeters/Products/KAM-MULTICAL-803",
     "datasheet_url": "N/A",
     "short_description": {
       "ro": "Soluție High-End pentru industrie și distribuție termică, cu protecție IP65 completă.",
@@ -105,7 +105,7 @@
     "price": 0.00,
     "currency": "RON",
     "stock_status": "on_request",
-    "image_url": "/product-images/KAM-MULTICAL-303",
+    "image_url": "/home/smartmet/images/SmartMeters/Products/KAM-MULTICAL-303",
     "datasheet_url": "N/A",
     "short_description": {
       "ro": "Cel mai mic contor ultrasonic de căldură și răcire.",

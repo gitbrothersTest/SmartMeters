@@ -32,38 +32,95 @@ app.use((req, res, next) => {
 const envPath = path.join(__dirname, '.env');
 require('dotenv').config({ path: envPath });
 
-// 2. Configurare Bază de Date (Connection Pool)
-const dbHost = process.env.DB_HOST || 'localhost';
+// --- DATABASE CONNECTION STRATEGY ---
+let pool;
+const useTunnel = process.env.USE_HTTP_TUNNEL === 'true';
 
-const dbConfig = {
-    host: dbHost,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    database: process.env.DB_NAME,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
-    decimalNumbers: true,
-    connectTimeout: 10000 // 10 secunde timeout
-};
+if (useTunnel) {
+    console.log('------------------------------------------------');
+    console.log('[TUNNEL] Mod activ: HTTP TUNNELING');
+    console.log(`[TUNNEL] Target: ${process.env.DB_TUNNEL_URL}`);
+    console.log('------------------------------------------------');
 
-const pool = mysql.createPool(dbConfig);
+    // Tunnel Adapter: Mimics the mysql2 pool interface but uses fetch to talk to PHP
+    pool = {
+        execute: async (sql, params) => {
+            try {
+                const response = await fetch(process.env.DB_TUNNEL_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Bridge-Secret': process.env.DB_TUNNEL_SECRET
+                    },
+                    body: JSON.stringify({ sql, params })
+                });
 
-// Helper pentru a testa conexiunea la pornire
-(async () => {
-    try {
-        const connection = await pool.getConnection();
-        console.log(`[MySQL] Conexiune reușită la baza de date (${dbHost})!`);
-        connection.release();
-    } catch (err) {
-        console.error('------------------------------------------------');
-        console.error(`[MySQL] EROARE FATALĂ: Nu s-a putut conecta la baza de date (${dbHost}).`);
-        console.error(`Eroare: ${err.code} - ${err.message}`);
-        console.error('Verificați IP-ul în Remote MySQL și dacă portul 3306 este deschis.');
-        console.error('------------------------------------------------');
-        // Nu oprim procesul (process.exit), dar API-ul va returna erori 500.
-    }
-})();
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(`Bridge Error (${response.status}): ${text}`);
+                }
+
+                const result = await response.json();
+                if (result.error) throw new Error(result.error);
+
+                // Mimic mysql2 return format: [rows, fields] (we omit fields for now)
+                // If it's an insert, structure it properly
+                if (result.insertId !== undefined) {
+                    return [{ insertId: result.insertId, affectedRows: result.affectedRows }, null];
+                }
+                
+                return [result.rows || [], null];
+            } catch (err) {
+                console.error('[TUNNEL ERROR]', err.message);
+                throw err;
+            }
+        },
+        getConnection: async () => {
+            // In HTTP Tunnel mode, we don't have real persistent connections or transactions.
+            // We return a dummy object that just executes queries directly.
+            // WARNING: Transactions (beginTransaction/commit) are NO-OPs here. 
+            // Data integrity isn't guaranteed if a multi-step order fails halfway, 
+            // but this is acceptable for local development.
+            return {
+                execute: async (sql, params) => pool.execute(sql, params),
+                beginTransaction: async () => logDebug('TUNNEL', 'Fake Transaction Started'),
+                commit: async () => logDebug('TUNNEL', 'Fake Transaction Committed'),
+                rollback: async () => logDebug('TUNNEL', 'Fake Transaction Rolled Back'),
+                release: () => {}
+            };
+        }
+    };
+} else {
+    // Standard MySQL Connection
+    const dbHost = process.env.DB_HOST || 'localhost';
+    const dbConfig = {
+        host: dbHost,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASS,
+        database: process.env.DB_NAME,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+        decimalNumbers: true,
+        connectTimeout: 10000 
+    };
+
+    pool = mysql.createPool(dbConfig);
+    
+    // Test connection
+    (async () => {
+        try {
+            const connection = await pool.getConnection();
+            console.log(`[MySQL] Conexiune reușită la baza de date (${dbHost})!`);
+            connection.release();
+        } catch (err) {
+            console.error('------------------------------------------------');
+            console.error(`[MySQL] EROARE FATALĂ: Nu s-a putut conecta la baza de date (${dbHost}).`);
+            console.error(`Eroare: ${err.code} - ${err.message}`);
+            console.error('------------------------------------------------');
+        }
+    })();
+}
 
 // 3. API Produse (Citire cu Filtre Dinamice)
 app.get('/api/products', async (req, res) => {
@@ -196,7 +253,10 @@ app.post('/api/orders', async (req, res) => {
                 ]
             );
 
-            const orderId = orderResult.insertId;
+            // In MySQL2 standard, insertId is on the result object. In our tunnel wrapper, we return [{insertId: ...}]
+            // We need to handle both cases gracefully or ensure wrapper matches perfectly.
+            const orderId = orderResult.insertId || orderResult[0]?.insertId; 
+
             const itemValues = [];
             const placeholders = items.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
             
@@ -318,5 +378,5 @@ app.get('*', (req, res) => {
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`Serverul SmartMeter rulează pe portul ${PORT}.`);
-    console.log(`Mod de operare: ONLINE (Strict DB)`);
+    console.log(`Mod de operare: ${useTunnel ? 'TUNNEL (via PHP Bridge)' : 'DIRECT (MySQL Port 3306)'}`);
 });

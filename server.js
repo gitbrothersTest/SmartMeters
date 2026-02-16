@@ -511,22 +511,98 @@ async function sendOrderEmail(orderNumber, data) {
     });
 
     const productsHtml = items.map((item) => `
-        <tr>
-            <td>${item.name} <small>(${item.sku})</small></td>
-            <td>${item.quantity}</td>
-            <td>${item.price} RON</td>
-            <td>${(item.price * item.quantity).toFixed(2)} RON</td>
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 12px;">
+                <div style="font-weight: bold; color: #0f172a;">${item.name}</div>
+                <div style="font-size: 11px; color: #94a3b8;">SKU: ${item.sku}</div>
+            </td>
+            <td style="padding: 12px; text-align: center;">${item.quantity}</td>
+            <td style="padding: 12px; text-align: right;">${item.price} RON</td>
+            <td style="padding: 12px; text-align: right; font-weight: bold;">${(item.price * item.quantity).toFixed(2)} RON</td>
         </tr>
     `).join('');
 
     const htmlContent = `
-    <h1>Comandă Nouă #${orderNumber}</h1>
-    <p>Client: ${billing.name} (${email})</p>
-    <table border="1" cellpadding="5" cellspacing="0">
-        <thead><tr><th>Produs</th><th>Cantitate</th><th>Preț</th><th>Total</th></tr></thead>
-        <tbody>${productsHtml}</tbody>
-    </table>
-    <p><strong>Total: ${totals.total} RON</strong></p>
+    <div style="font-family: sans-serif; background-color: #f5f5f5; padding: 20px;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+            <!-- Header -->
+            <div style="background-color: #0f172a; color: white; padding: 30px;">
+                <h1 style="margin: 0; font-size: 24px;">Comandă Nouă #${orderNumber}</h1>
+                <p style="margin: 10px 0 0 0; opacity: 0.8;">Data: ${new Date().toLocaleDateString('ro-RO')} | Status: <span style="color: #4ade80;">În procesare</span></p>
+            </div>
+
+            <div style="padding: 30px;">
+                <!-- Contact & Notes -->
+                <div style="background-color: #fffbeb; border-left: 4px solid #d97706; padding: 15px; margin-bottom: 30px;">
+                    <h3 style="margin: 0 0 10px 0; color: #92400e; font-size: 16px;">Contact & Notițe:</h3>
+                    <p style="margin: 0; font-size: 14px;"><strong>Email Client:</strong> <a href="mailto:${email}" style="color: #2563eb;">${email}</a></p>
+                    ${order_notes ? `<p style="margin: 5px 0 0 0; font-size: 14px;"><strong>Notițe:</strong> ${order_notes}</p>` : ''}
+                </div>
+
+                <!-- Products -->
+                <h3 style="color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; font-size: 18px;">Produse din coș</h3>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                    <thead style="background-color: #f1f5f9; color: #64748b; font-size: 12px; text-transform: uppercase;">
+                        <tr>
+                            <th style="padding: 12px; text-align: left;">Produs</th>
+                            <th style="padding: 12px; text-align: center;">Cantitate</th>
+                            <th style="padding: 12px; text-align: right;">Preț Unitar</th>
+                            <th style="padding: 12px; text-align: right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${productsHtml}
+                    </tbody>
+                </table>
+
+                <!-- Totals -->
+                <div style="text-align: right; margin-bottom: 40px;">
+                    <p style="margin: 5px 0; color: #64748b;">Subtotal: ${totals.subtotal} RON</p>
+                    ${Number(totals.discount) > 0 ? `<p style="margin: 5px 0; color: #16a34a;">Discount (${totals.discountCode}): -${totals.discount} RON</p>` : ''}
+                    <h2 style="color: #059669; margin: 10px 0 0 0;">TOTAL FINAL: ${totals.total} RON</h2>
+                </div>
+
+                <!-- Client Details -->
+                <h3 style="color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; font-size: 18px;">Detalii Client</h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <thead style="background-color: #f1f5f9; text-align: left; font-size: 12px;">
+                        <tr>
+                            <th style="padding: 10px;">Tip Adresă</th>
+                            <th style="padding: 10px;">Nume</th>
+                            <th style="padding: 10px;">Companie</th>
+                            <th style="padding: 10px;">Adresă</th>
+                            <th style="padding: 10px;">Oraș</th>
+                            <th style="padding: 10px;">Telefon</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding: 10px; font-weight: bold;">Facturare</td>
+                            <td style="padding: 10px;">${billing.name}</td>
+                            <td style="padding: 10px;">${billing.company || '-'}</td>
+                            <td style="padding: 10px;">${billing.address1}</td>
+                            <td style="padding: 10px;">${billing.city}</td>
+                            <td style="padding: 10px;">${billing.phone}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; font-weight: bold;">Livrare</td>
+                            <td style="padding: 10px;">${shipping.name}</td>
+                            <td style="padding: 10px;">${shipping.company || '-'}</td>
+                            <td style="padding: 10px;">${shipping.address1}</td>
+                            <td style="padding: 10px;">${shipping.city}</td>
+                            <td style="padding: 10px;">${shipping.phone}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer -->
+            <div style="background-color: #f8fafc; padding: 20px; text-align: center; color: #94a3b8; font-size: 12px; border-top: 1px solid #e2e8f0;">
+                <p style="margin: 0;">Acest email a fost generat automat de SmartMeters.ro</p>
+                <p style="margin: 5px 0 0 0;">București, Romania | adrian.geanta@smartmeter.ro</p>
+            </div>
+        </div>
+    </div>
     `;
 
     const mailOptions = {

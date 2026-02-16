@@ -14,6 +14,7 @@ const logDebug = (section, message, data = null) => {
         console.log(`[${timestamp}] [DEBUG] [${section}] ${message}`);
         if (data && DEBUG_LEVEL > 1) {
             // Level 2 includes data dumping
+            // Security: Use a safe replacer if needed, but for now we assume data passed here is safe-ish
             console.log(JSON.stringify(data, null, 2));
         }
     }

@@ -14,7 +14,6 @@ const logDebug = (section, message, data = null) => {
         console.log(`[${timestamp}] [DEBUG] [${section}] ${message}`);
         if (data && DEBUG_LEVEL > 1) {
             // Level 2 includes data dumping
-            // Security: Use a safe replacer if needed, but for now we assume data passed here is safe-ish
             console.log(JSON.stringify(data, null, 2));
         }
     }
@@ -43,15 +42,17 @@ if (dotenvResult.error) {
 }
 
 // 2. Configurare Bază de Date (Connection Pool)
+const dbHost = process.env.DB_HOST || 'localhost';
 const dbConfig = {
-    host: process.env.DB_HOST || 'localhost',
+    host: dbHost,
     user: process.env.DB_USER,
     password: process.env.DB_PASS,
     database: process.env.DB_NAME,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    decimalNumbers: true
+    decimalNumbers: true,
+    connectTimeout: 10000 // 10 seconds timeout
 };
 
 // Security: Never log the password even in debug mode
@@ -64,15 +65,27 @@ const pool = mysql.createPool(dbConfig);
 (async () => {
     try {
         const connection = await pool.getConnection();
-        console.log('[MySQL] Conexiune reușită la baza de date!');
+        console.log(`[MySQL] Conexiune reușită la baza de date (${dbHost})!`);
         logDebug('DATABASE', 'Initial connection test passed.');
         connection.release();
     } catch (err) {
         console.error('------------------------------------------------');
         console.error('[MySQL] EROARE CRITICĂ LA CONECTARE:');
+        console.error(`Host: ${dbHost}`);
         console.error(`Mesaj: ${err.message}`);
+        
+        if (err.code === 'ECONNREFUSED' && (dbHost === 'localhost' || dbHost === '127.0.0.1')) {
+            console.error('\n[SUGESTIE] Încercați să vă conectați la localhost dar nu aveți un server MySQL pornit local.');
+            console.error('Dacă vreți să vă conectați la cPanel, schimbați DB_HOST în .env cu IP-ul serverului.');
+        } else if (err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED') {
+            console.error('\n[SUGESTIE] Serverul respinge conexiunea.');
+            console.error('1. Verificați dacă ați adăugat IP-ul dvs. în cPanel -> Remote MySQL.');
+            console.error('2. Verificați dacă portul 3306 este deschis.');
+        } else if (err.code === 'ER_ACCESS_DENIED_ERROR') {
+            console.error('\n[SUGESTIE] User sau parolă greșită.');
+        }
+
         if (DEBUG_LEVEL > 0) console.error(err.stack);
-        console.error('Verificați dacă serviciul MySQL rulează și credențialele din .env sunt corecte.');
         console.error('------------------------------------------------');
     }
 })();

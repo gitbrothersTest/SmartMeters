@@ -36,25 +36,27 @@ const MyOrders: React.FC = () => {
   const [orders, setOrders] = useState<DisplayOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
-  const [refreshCooldowns, setRefreshCooldowns] = useState<Record<string, number>>({});
+  const [cooldowns, setCooldowns] = useState<Record<string, number>>({});
 
-
-  // Load initial summary from localStorage
+  // Load initial summaries and cooldowns from localStorage
   useEffect(() => {
     try {
-        const cached = localStorage.getItem('sm_order_history_cache');
-        if (cached) {
-            setOrders(JSON.parse(cached));
+        const cachedOrders = localStorage.getItem('sm_order_history_cache');
+        if (cachedOrders) {
+            setOrders(JSON.parse(cachedOrders));
+        }
+        const storedCooldowns = localStorage.getItem('sm_refresh_cooldowns');
+        if (storedCooldowns) {
+            setCooldowns(JSON.parse(storedCooldowns));
         }
     } catch (error) {
-        console.error("Failed to load order history from cache", error);
+        console.error("Failed to load data from cache", error);
     } finally {
         setLoading(false);
     }
   }, []);
 
   const fetchOrderDetails = async (orderNumber: string) => {
-    // Find the order in state and set its loading status
     setOrders(prev => prev.map(o => o.orderNumber === orderNumber ? { ...o, isLoadingDetails: true } : o));
 
     try {
@@ -63,7 +65,6 @@ const MyOrders: React.FC = () => {
         
         const details: FullOrder = await response.json();
         
-        // Update the specific order with its details
         setOrders(prev => prev.map(o => o.orderNumber === orderNumber ? { ...o, details, isLoadingDetails: false } : o));
 
     } catch (error) {
@@ -73,7 +74,7 @@ const MyOrders: React.FC = () => {
   };
 
   const handleRefresh = (orderNumber: string) => {
-    const lastRefresh = refreshCooldowns[orderNumber];
+    const lastRefresh = cooldowns[orderNumber];
     const now = Date.now();
 
     if (lastRefresh && (now - lastRefresh < COOLDOWN_MS)) {
@@ -87,7 +88,13 @@ const MyOrders: React.FC = () => {
     if (DEBUG_LEVEL > 0) console.log(`[DEBUG] Refreshing order ${orderNumber}...`);
     
     fetchOrderDetails(orderNumber).then(() => {
-        setRefreshCooldowns(prev => ({ ...prev, [orderNumber]: now }));
+        const newCooldowns = { ...cooldowns, [orderNumber]: now };
+        setCooldowns(newCooldowns);
+        try {
+            localStorage.setItem('sm_refresh_cooldowns', JSON.stringify(newCooldowns));
+        } catch(e) {
+            console.error("Failed to save cooldowns to cache", e);
+        }
         if (DEBUG_LEVEL > 0) console.log(`[DEBUG] Order ${orderNumber} refreshed. Cooldown started for ${COOLDOWN_MINUTES} min.`);
     });
   };
@@ -100,7 +107,6 @@ const MyOrders: React.FC = () => {
         setExpandedOrder(null);
     } else {
         setExpandedOrder(orderNumber);
-        // Fetch details only if they haven't been fetched before
         if (orderInState && !orderInState.details) {
             fetchOrderDetails(orderNumber);
         }
@@ -144,7 +150,25 @@ const MyOrders: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {orders.map((order) => (
+            {orders.map((order) => {
+                const now = Date.now();
+                const lastRefresh = cooldowns[order.orderNumber];
+                const isOnCooldown = lastRefresh && (now - lastRefresh < COOLDOWN_MS);
+                
+                let buttonTitle = "Actualizează statusul comenzii";
+                if (isOnCooldown) {
+                    const timeLeftSec = Math.ceil((COOLDOWN_MS - (now - lastRefresh)) / 1000);
+                    const timeLeftMin = Math.ceil(timeLeftSec / 60);
+                    buttonTitle = `Puteți actualiza din nou în aprox. ${timeLeftMin} minute.`;
+                }
+
+                const buttonClasses = `flex items-center gap-2 text-sm px-3 py-1.5 rounded-md transition-all ${
+                    isOnCooldown 
+                    ? 'bg-gray-100 text-gray-400 cursor-default opacity-70' 
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+                }`;
+
+                return (
               <div key={order.orderNumber} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 <div 
                   className="p-6 flex flex-col md:flex-row md:items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
@@ -181,7 +205,7 @@ const MyOrders: React.FC = () => {
                         </div>
                     ) : order.details ? (
                         <div>
-                            <div className="flex items-center gap-4 mb-4">
+                            <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <span className="text-xs text-gray-500 uppercase tracking-wider block mb-1">{t('orders.status')}</span>
                                     <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${getStatusColor(order.details.status)}`}>
@@ -190,10 +214,11 @@ const MyOrders: React.FC = () => {
                                 </div>
                                 <button 
                                     onClick={() => handleRefresh(order.details!.order_number)}
-                                    title="Actualizează statusul comenzii"
-                                    className="p-2 text-gray-400 hover:text-primary hover:bg-gray-200 rounded-full transition-colors self-end"
+                                    title={buttonTitle}
+                                    className={buttonClasses}
                                 >
-                                    <RefreshCw size={16} />
+                                    <RefreshCw size={14} className={!isOnCooldown ? "group-hover:rotate-90 transition-transform" : ""} />
+                                    Actualizează
                                 </button>
                             </div>
                             <h4 className="font-semibold text-slate-800 mb-4">{t('orders.items')}</h4>
@@ -224,7 +249,7 @@ const MyOrders: React.FC = () => {
                   </div>
                 )}
               </div>
-            ))}
+            )})}
           </div>
         )}
       </div>

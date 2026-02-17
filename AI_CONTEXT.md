@@ -14,6 +14,7 @@
 
 ### High-Level Stack
 *   **Frontend:** React 19, Vite, Tailwind CSS, Lucide React, React Router DOM (HashRouter).
+    *   **Note:** Vite requires client-side environment variables to be prefixed with `VITE_` to be exposed to the browser.
 *   **Backend:** Node.js (Express) acting as an API Gateway and Render Server.
 *   **Database:** MySQL (Hosted on cPanel/Shared Hosting).
 *   **Connectivity:** **HTTP Tunneling** via a custom PHP Bridge.
@@ -129,7 +130,7 @@ Based on `DESCRIBE` output from the live database.
 *   **My Orders (`/my-orders`):** Optimized for performance.
     1.  **Initial Load:** Fetches a list of order summaries from `/api/order-history` based on the client's token OR IP address. This list is cached in `localStorage`. Previously opened order details are preserved from the cache.
     2.  **Details View:** When an order is expanded, full details (items, status) are fetched on-demand from `/api/order-details/:id` and then saved to the cache.
-    3.  **Refresh:** A refresh button with a configurable, persistent cooldown allows re-fetching details and updating the cache.
+    3.  **Refresh:** A refresh button with a configurable, persistent cooldown allows re-fetching details and updating the cache. The cooldown duration is managed by the `VITE_ORDER_REFRESH_COOLDOWN_MINUTES` environment variable. The component UI updates in real-time once the cooldown expires, without needing a page refresh.
 *   **Admin (`/admin`):** Admin route and component exist but are currently hidden from the UI.
 
 ---
@@ -159,6 +160,7 @@ Based on `DESCRIBE` output from the live database.
 *   [ ] **Admin:** Currently hidden. Needs real auth and DB write endpoints.
 
 ### Recent Changelog
+*   **MyOrders Cooldown Timer Fix:** Corrected the cooldown mechanism on the My Orders page. The timer now updates in real-time without requiring a page refresh. Fixed a critical bug where the cooldown duration was not read from the `.env` file; updated `vite.config.ts` to use the required `VITE_` prefix for client-side environment variables. Removed the dynamic hover message as per user request.
 *   **MyOrders Page Optimization:** Refactored the MyOrders page for performance. It now fetches a list of order summaries by token OR IP on initial load, caching the result. Full order details are fetched on-demand when an order is expanded and are also cached. A refresh button with a persistent cooldown allows updating cached details.
 *   **Order ID Generation:** Implemented a robust order numbering system (`ORD-YYYY-ID`) using the database auto-increment ID to guarantee uniqueness.
 *   **Order Statuses:** Aligned email status with DB. Updated DB schema to support `new`, `processing`, `in_delivery`, `complete`, `cancelled`. Added translations.

@@ -118,21 +118,11 @@ const MyOrders: React.FC = () => {
     }
   };
 
-  const handleRefresh = (orderNumber: string) => {
-    const lastRefresh = cooldowns[orderNumber];
-    const now = Date.now();
-
-    if (lastRefresh && (now - lastRefresh < COOLDOWN_MS)) {
-        if (DEBUG_LEVEL > 0) {
-            const timeLeft = Math.round((COOLDOWN_MS - (now - lastRefresh)) / 1000);
-            console.log(`[DEBUG] Refresh for order ${orderNumber} is on cooldown. Try again in ${timeLeft}s.`);
-        }
-        return;
-    }
-    
-    if (DEBUG_LEVEL > 0) console.log(`[DEBUG] Refreshing order ${orderNumber}...`);
+  const triggerRefresh = (orderNumber: string) => {
+    if (DEBUG_LEVEL > 0) console.log(`[DEBUG] Refreshing order ${orderNumber} from DB...`);
     
     fetchOrderDetails(orderNumber).then(() => {
+        const now = Date.now();
         const newCooldowns = { ...cooldowns, [orderNumber]: now };
         setCooldowns(newCooldowns);
         try {
@@ -144,17 +134,47 @@ const MyOrders: React.FC = () => {
     });
   };
 
+  const handleRefreshClick = (orderNumber: string) => {
+    const lastRefresh = cooldowns[orderNumber];
+    const now = Date.now();
+
+    if (lastRefresh && (now - lastRefresh < COOLDOWN_MS)) {
+        if (DEBUG_LEVEL > 0) {
+            const timeLeft = Math.round((COOLDOWN_MS - (now - lastRefresh)) / 1000);
+            console.log(`[DEBUG] Refresh button for order ${orderNumber} is on cooldown. Try again in ${timeLeft}s.`);
+        }
+        return;
+    }
+    
+    triggerRefresh(orderNumber);
+  };
 
   const toggleOrder = (orderNumber: string) => {
-    const orderInState = orders.find(o => o.orderNumber === orderNumber);
-    
     if (expandedOrder === orderNumber) {
         setExpandedOrder(null);
-    } else {
-        setExpandedOrder(orderNumber);
+        return;
+    }
+
+    setExpandedOrder(orderNumber);
+
+    const orderInState = orders.find(o => o.orderNumber === orderNumber);
+    const lastRefresh = cooldowns[orderNumber];
+    const now = Date.now();
+    const isOnCooldown = lastRefresh && (now - lastRefresh < COOLDOWN_MS);
+
+    if (isOnCooldown) {
+        if (DEBUG_LEVEL > 0) {
+            console.log(`[DEBUG][Details Click] Cooldown active for ${orderNumber}. Using cached data.`);
+        }
         if (orderInState && !orderInState.details) {
+            if (DEBUG_LEVEL > 0) console.log(`[DEBUG] Details for ${orderNumber} not in cache. Fetching once.`);
             fetchOrderDetails(orderNumber);
         }
+    } else {
+        if (DEBUG_LEVEL > 0) {
+            console.log(`[DEBUG][Details Click] Cooldown INACTIVE for ${orderNumber}. Fetching from DB and starting cooldown.`);
+        }
+        triggerRefresh(orderNumber);
     }
   };
 
@@ -258,7 +278,7 @@ const MyOrders: React.FC = () => {
                                     </span>
                                 </div>
                                 <button 
-                                    onClick={() => handleRefresh(order.details!.order_number)}
+                                    onClick={() => handleRefreshClick(order.details!.order_number)}
                                     title={buttonTitle}
                                     className={buttonClasses}
                                 >

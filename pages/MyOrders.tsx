@@ -26,10 +26,10 @@ interface DisplayOrder extends CachedOrder {
     isLoadingDetails?: boolean;
 }
 
-// Read cooldown from environment variables with a fallback
-const COOLDOWN_MINUTES = parseInt(process.env.ORDER_REFRESH_COOLDOWN_MINUTES || '10', 10);
+// Read cooldown from environment variables. The build process (vite.config.ts) provides the fallback.
+const COOLDOWN_MINUTES = parseInt(process.env.ORDER_REFRESH_COOLDOWN_MINUTES, 10);
 const COOLDOWN_MS = COOLDOWN_MINUTES * 60 * 1000;
-const DEBUG_LEVEL = parseInt(process.env.DEBUG_LEVEL || '0', 10);
+const DEBUG_LEVEL = parseInt(process.env.DEBUG_LEVEL, 10);
 
 const MyOrders: React.FC = () => {
   const { t } = useLanguage();
@@ -37,6 +37,33 @@ const MyOrders: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [cooldowns, setCooldowns] = useState<Record<string, number>>({});
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
+  // Effect to update current time every second to re-evaluate cooldowns
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000); 
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Effect to sync cooldown state with localStorage changes from other tabs/dev tools
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+        if (event.key === 'sm_refresh_cooldowns') {
+            const newCooldowns = event.newValue ? JSON.parse(event.newValue) : {};
+            setCooldowns(newCooldowns);
+            if (DEBUG_LEVEL > 0) {
+                console.log('[DEBUG] Cooldowns synced from localStorage change.');
+            }
+        }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+        window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   const getClientToken = () => localStorage.getItem('sm_client_token');
 
@@ -216,7 +243,7 @@ const MyOrders: React.FC = () => {
         ) : (
           <div className="space-y-4">
             {orders.map((order) => {
-                const now = Date.now();
+                const now = currentTime; // Use state for real-time updates
                 const lastRefresh = cooldowns[order.orderNumber];
                 const isOnCooldown = lastRefresh && (now - lastRefresh < COOLDOWN_MS);
                 
@@ -224,12 +251,16 @@ const MyOrders: React.FC = () => {
                 if (isOnCooldown) {
                     const timeLeftSec = Math.ceil((COOLDOWN_MS - (now - lastRefresh)) / 1000);
                     const timeLeftMin = Math.ceil(timeLeftSec / 60);
-                    buttonTitle = `Puteți actualiza din nou în aprox. ${timeLeftMin} minute.`;
+                    if (timeLeftMin > 1) {
+                        buttonTitle = `Puteți actualiza din nou în aprox. ${timeLeftMin} minute.`;
+                    } else {
+                        buttonTitle = `Puteți actualiza din nou în aprox. ${timeLeftSec} secunde.`;
+                    }
                 }
 
                 const buttonClasses = `flex items-center gap-2 text-sm px-3 py-1.5 rounded-md transition-all ${
                     isOnCooldown 
-                    ? 'bg-gray-100 text-gray-400 cursor-default opacity-70' 
+                    ? 'bg-slate-100 text-slate-400 cursor-pointer' 
                     : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
                 }`;
 

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product } from '../types';
 import { PRODUCTS } from '../constants';
@@ -28,6 +29,9 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
         if (filters.manufacturer && filters.manufacturer !== 'ALL') queryParams.append('manufacturer', filters.manufacturer);
         if (filters.protocol && filters.protocol !== 'ALL') queryParams.append('protocol', filters.protocol);
         if (filters.search) queryParams.append('search', filters.search);
+        
+        // Add support for fetching inactive products (e.g. for Admin)
+        if (filters.includeInactive) queryParams.append('include_inactive', 'true');
 
         const response = await fetch(`/api/products?${queryParams.toString()}`);
         
@@ -43,6 +47,11 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
         // --- Fallback Logic: Filter mock data locally ---
         let filtered = [...PRODUCTS];
         
+        // If not asking for inactive, filter them out in mock
+        if (!filters.includeInactive) {
+            filtered = filtered.filter(p => p.isActive);
+        }
+
         if (filters.category && filters.category !== 'ALL') {
             filtered = filtered.filter(p => p.category === filters.category);
         }

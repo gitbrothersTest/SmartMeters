@@ -220,9 +220,14 @@ if (useTunnel) {
 // 3. API Produse (Citire cu Filtre Dinamice)
 app.get('/api/products', async (req, res) => {
     try {
-        const { category, manufacturer, protocol, search } = req.query;
+        const { category, manufacturer, protocol, search, include_inactive } = req.query;
         let query = 'SELECT * FROM products WHERE 1=1';
         const params = [];
+
+        // Visibility Check: Only show active products unless explicitly requested (e.g. by admin)
+        if (include_inactive !== 'true') {
+            query += ' AND is_active = 1';
+        }
 
         if (category && category !== 'ALL') {
             query += ' AND category = ?';
@@ -268,6 +273,10 @@ app.get('/api/products/:id', async (req, res) => {
         if (rows.length === 0) return res.status(404).json({ error: 'Produs inexistent' });
 
         const p = rows[0];
+        
+        // Allow fetch, but front-end might choose to hide it if isActive=false. 
+        // Or we could block it here. For now, let's return it so Admin can edit it by ID if needed.
+        
         const product = {
             ...p,
             shortDescription: typeof p.short_description === 'string' ? JSON.parse(p.short_description) : p.short_description,
@@ -484,7 +493,9 @@ app.post('/api/admin/import-products', async (req, res) => {
                 p.price,
                 p.currency,
                 p.stock_status,
-                p.is_active !== undefined ? (p.is_active ? 1 : 0) : 0, // Default to inactive (0) for safety/requirement
+                // Default to 0 (inactive) if not specified, unless updating existing where we want to keep current state? 
+                // Actually, for import, usually you want to control it via JSON. If missing in JSON, defaulting to 0 is safer.
+                p.is_active !== undefined ? (p.is_active ? 1 : 0) : 0, 
                 p.image_url,
                 p.datasheet_url,
                 JSON.stringify(p.short_description),

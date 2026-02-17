@@ -1,14 +1,19 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useProducts } from '../context/ProductContext';
 import { Product, ProductCategory } from '../types';
 import { Edit, Trash, Plus, Save, X } from 'lucide-react';
 
 const Admin: React.FC = () => {
-  const { products, updateProduct, deleteProduct, addProduct } = useProducts();
+  const { products, updateProduct, deleteProduct, addProduct, fetchProducts } = useProducts();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Product>>({});
   const [isAdding, setIsAdding] = useState(false);
+
+  // Fetch all products (including inactive) when Admin mounts
+  useEffect(() => {
+      fetchProducts({ includeInactive: true });
+  }, []);
 
   // Initial state for new product - ACTIVE defaults to FALSE
   const initialNewProduct: Product = {
@@ -139,7 +144,7 @@ const Admin: React.FC = () => {
                         onChange={(e) => setEditForm({...editForm, name: e.target.value})}
                       />
                     ) : (
-                      <span className="font-medium text-slate-800">{product.name}</span>
+                      <span className={`font-medium ${product.isActive ? 'text-slate-800' : 'text-slate-400'}`}>{product.name}</span>
                     )}
                   </td>
 

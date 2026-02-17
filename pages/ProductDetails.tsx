@@ -81,8 +81,8 @@ Doresc documentatia pentru produsul ${product.name} cu codul SKU ${product.sku}
 
 Va multumesc!`;
 
-  // Determine availability
-  const isUnavailable = !product.isActive || product.stockStatus === 'out_of_stock';
+  // Determine availability (out_of_stock is visible but unbuyable)
+  const isOutOfStock = product.stockStatus === 'out_of_stock';
 
   return (
     <div className="bg-gray-50 py-12 min-h-screen">
@@ -105,9 +105,9 @@ Va multumesc!`;
             {/* Image Section */}
             <div className="lg:w-1/2 p-8 bg-white flex items-center justify-center border-b lg:border-b-0 lg:border-r border-gray-100 relative min-h-[400px]">
                 <div className="absolute top-4 left-4 z-10">
-                    {isUnavailable ? (
+                    {isOutOfStock ? (
                         <span className="bg-gray-200 text-gray-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                            {product.stockStatus === 'out_of_stock' ? t('product.out_of_stock') : t('product.unavailable')}
+                            {t('product.out_of_stock')}
                         </span>
                     ) : product.stockStatus === 'in_stock' ? (
                         <span className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
@@ -122,7 +122,7 @@ Va multumesc!`;
               <img 
                 src={product.image} 
                 alt={product.name}
-                className={`max-h-[500px] w-auto object-contain mix-blend-multiply transition-transform hover:scale-105 duration-500 ${isUnavailable ? 'grayscale opacity-70' : ''}`}
+                className={`max-h-[500px] w-auto object-contain mix-blend-multiply transition-transform hover:scale-105 duration-500 ${isOutOfStock ? 'grayscale opacity-70' : ''}`}
               />
             </div>
 
@@ -145,10 +145,10 @@ Va multumesc!`;
 
               {/* Price & Cart Block */}
               <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 mb-8">
-                {isUnavailable ? (
+                {isOutOfStock ? (
                     <div className="text-center py-4">
-                        <span className="text-2xl font-bold text-gray-400 uppercase tracking-wider block mb-2">{t('product.unavailable')}</span>
-                        <p className="text-sm text-gray-500">Acest produs nu este momentan disponibil pentru comandă.</p>
+                        <span className="text-2xl font-bold text-gray-400 uppercase tracking-wider block mb-2">{t('product.out_of_stock')}</span>
+                        <p className="text-sm text-gray-500">Acest produs nu mai este disponibil momentan.</p>
                     </div>
                 ) : (
                     <>

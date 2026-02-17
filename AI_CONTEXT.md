@@ -66,7 +66,7 @@ Based on `DESCRIBE` output from the live database.
 | `price` | `decimal(10,2)` | NO | | NULL | |
 | `currency` | `varchar(10)` | YES | | 'RON' | |
 | `stock_status` | `enum('in_stock','on_request','out_of_stock')` | YES | | 'in_stock' | |
-| `is_active` | `tinyint(1)` | YES | | 0 | Default to hidden |
+| `is_active` | `tinyint(1)` | NO | | 0 | 0=Hidden, 1=Visible |
 | `image_url` | `varchar(500)` | YES | | NULL | |
 | `short_description` | `json` | YES | | NULL | |
 | `full_description` | `json` | YES | | NULL | |
@@ -135,7 +135,7 @@ Based on `DESCRIBE` output from the live database.
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `GET` | `/api/products` | Accepts `category`, `manufacturer`, `protocol`, `search`. Returns JSON array. |
+| `GET` | `/api/products` | Accepts `category`, `manufacturer`, `protocol`, `search`, `include_inactive`. Defaults to `is_active=1`. |
 | `GET` | `/api/products/:id` | Returns single product details. |
 | `GET` | `/api/validate-discount` | Accepts `code`. Returns discount details or 404. |
 | `GET` | `/api/my-orders` | Accepts `token`. Returns orders for that client token. |
@@ -162,7 +162,7 @@ Based on `DESCRIBE` output from the live database.
 *   **Email Templates:** Adjusted email max-width to 800px, added fallback text for empty notes, and fixed conditional rendering for discount lines (only displayed if value > 0). **Status: Functional**.
 *   **UI Adjustments (Contact):** Removed the support phone number display card from the Contact page as requested (input field preserved). **Status: Functional**.
 *   **UI Adjustments (Header):** Converted the top-left email address into a clickable `mailto:` link. **Status: Functional**.
-*   **Product Availability:** Added `is_active` flag (defaults to false) and `out_of_stock` status. Updated UI to hide price and show unavailable status when applicable. **Status: Functional**.
+*   **Product Availability (Logic Update):** `is_active=0` completely hides product from API. `stock_status=out_of_stock` keeps product visible but hides price/cart. **Status: Functional**.
 
 ---
 *End of Specification.*

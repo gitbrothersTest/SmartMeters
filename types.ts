@@ -32,7 +32,7 @@ export interface Product {
   price: number;
   currency: string;
   stockStatus: 'in_stock' | 'on_request' | 'out_of_stock';
-  isActive: boolean; // Controls visibility/purchasability
+  isActive: boolean; // Controls visibility (Hidden from API if false)
   image: string;
   
   // Remaining detailed specs

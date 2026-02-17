@@ -70,7 +70,7 @@ const MyOrders: React.FC = () => {
   // Load initial summaries from server, merge with cached details
   useEffect(() => {
     if (DEBUG_LEVEL > 0) {
-        console.log(`[MyOrders] Cooldown is set to ${COOLDOWN_MINUTES} minutes (${COOLDOWN_MS}ms). If this value is incorrect, please restart the dev server.`);
+        console.log(`[MyOrders] Cooldown is set to ${COOLDOWN_MINUTES} minutes (${COOLDOWN_MS}ms). If this value is incorrect, ensure VITE_ORDER_REFRESH_COOLDOWN_MINUTES is set in .env and restart the dev server.`);
     }
 
     const loadOrderHistory = async () => {
@@ -251,14 +251,6 @@ const MyOrders: React.FC = () => {
                 const lastRefresh = cooldowns[order.orderNumber];
                 const isOnCooldown = lastRefresh && (now - lastRefresh < COOLDOWN_MS);
                 
-                let buttonTitle = "Actualizează statusul comenzii";
-                if (isOnCooldown) {
-                    const timeLeftSecTotal = Math.ceil((COOLDOWN_MS - (now - lastRefresh)) / 1000);
-                    const minutes = Math.floor(timeLeftSecTotal / 60);
-                    const seconds = timeLeftSecTotal % 60;
-                    buttonTitle = `Puteți actualiza din nou în ${minutes > 0 ? `${minutes}m ` : ''}${seconds.toString().padStart(2, '0')}s.`;
-                }
-
                 const buttonClasses = `flex items-center gap-2 text-sm px-3 py-1.5 rounded-md transition-all group ${
                     isOnCooldown 
                     ? 'bg-slate-100 text-slate-500 cursor-pointer' 
@@ -311,7 +303,7 @@ const MyOrders: React.FC = () => {
                                 </div>
                                 <button 
                                     onClick={() => handleRefreshClick(order.details!.order_number)}
-                                    title={buttonTitle}
+                                    title={"Actualizează statusul comenzii"}
                                     className={buttonClasses}
                                 >
                                     <RefreshCw size={14} className={`${!isOnCooldown ? "group-hover:rotate-90 transition-transform" : "opacity-50"}`} />

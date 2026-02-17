@@ -38,21 +38,53 @@ const MyOrders: React.FC = () => {
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [cooldowns, setCooldowns] = useState<Record<string, number>>({});
 
-  // Load initial summaries and cooldowns from localStorage
+  const getClientToken = () => localStorage.getItem('sm_client_token');
+
+  // Load initial summaries from server, merge with cached details
   useEffect(() => {
-    try {
-        const cachedOrders = localStorage.getItem('sm_order_history_cache');
-        if (cachedOrders) {
-            setOrders(JSON.parse(cachedOrders));
+    const loadOrderHistory = async () => {
+        setLoading(true);
+        try {
+            const token = getClientToken();
+            const response = await fetch(`/api/order-history?token=${token || ''}`);
+            if (!response.ok) throw new Error('API fetch failed for order history');
+
+            const summaries: CachedOrder[] = await response.json();
+
+            // Preserve details from old cache to merge with fresh summaries
+            const oldCacheRaw = localStorage.getItem('sm_order_history_cache');
+            const oldCache: DisplayOrder[] = oldCacheRaw ? JSON.parse(oldCacheRaw) : [];
+            const detailsMap = new Map<string, FullOrder | undefined>();
+            oldCache.forEach(o => {
+                if (o.details) {
+                    detailsMap.set(o.orderNumber, o.details);
+                }
+            });
+
+            const newOrdersState: DisplayOrder[] = summaries.map(summary => ({
+                ...summary,
+                details: detailsMap.get(summary.orderNumber)
+            }));
+
+            setOrders(newOrdersState);
+            localStorage.setItem('sm_order_history_cache', JSON.stringify(newOrdersState));
+
+        } catch (error) {
+            console.error("Failed to load order history from server, falling back to cache.", error);
+            const cached = localStorage.getItem('sm_order_history_cache');
+            if (cached) {
+                setOrders(JSON.parse(cached));
+            }
+        } finally {
+            setLoading(false);
         }
-        const storedCooldowns = localStorage.getItem('sm_refresh_cooldowns');
-        if (storedCooldowns) {
-            setCooldowns(JSON.parse(storedCooldowns));
-        }
-    } catch (error) {
-        console.error("Failed to load data from cache", error);
-    } finally {
-        setLoading(false);
+    };
+
+    loadOrderHistory();
+
+    const storedCooldowns = localStorage.getItem('sm_refresh_cooldowns');
+    if (storedCooldowns) {
+        setCooldowns(JSON.parse(storedCooldowns));
     }
   }, []);
 
@@ -61,11 +93,24 @@ const MyOrders: React.FC = () => {
 
     try {
         const response = await fetch(`/api/order-details/${orderNumber}`);
-        if (!response.ok) throw new Error('Failed to fetch');
+        if (!response.ok) throw new Error('Failed to fetch details');
         
         const details: FullOrder = await response.json();
         
-        setOrders(prev => prev.map(o => o.orderNumber === orderNumber ? { ...o, details, isLoadingDetails: false } : o));
+        setOrders(currentOrders => {
+            const updatedOrders = currentOrders.map(o =>
+                o.orderNumber === orderNumber ? { ...o, details, isLoadingDetails: false } : o
+            );
+            
+            try {
+                localStorage.setItem('sm_order_history_cache', JSON.stringify(updatedOrders));
+                 if (DEBUG_LEVEL > 0) {
+                    console.log(`[DEBUG] Cache updated for order ${orderNumber}.`);
+                }
+            } catch(e) { console.error("Failed to write details to cache", e) }
+            
+            return updatedOrders;
+        });
 
     } catch (error) {
         console.error(`Failed to fetch details for order ${orderNumber}`, error);

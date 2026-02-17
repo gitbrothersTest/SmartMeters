@@ -228,25 +228,34 @@ app.get('/api/validate-discount', async (req, res) => {
     }
 });
 
-// API: My Orders (Legacy, not used by new MyOrders page)
-app.get('/api/my-orders', async (req, res) => {
+// API: My Orders Summaries (by token or IP)
+app.get('/api/order-history', async (req, res) => {
     try {
         const { token } = req.query;
-        if (!token) return res.status(400).json({ error: 'Token missing' });
-        
-        const [orders] = await pool.execute('SELECT * FROM orders WHERE client_token = ? ORDER BY created_at DESC', [token]);
-        res.json(orders);
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+        const [orders] = await pool.execute(
+            'SELECT order_number, created_at, final_total FROM orders WHERE client_token = ? OR client_ip = ? ORDER BY created_at DESC', 
+            [token || null, ip]
+        );
+
+        const summaries = orders.map(order => ({
+            orderNumber: order.order_number,
+            date: order.created_at,
+            total: order.final_total
+        }));
+
+        res.json(summaries);
     } catch (err) {
-        res.status(500).json({ error: 'Eroare la preluarea comenzilor.' });
+        res.status(500).json({ error: 'Eroare la preluarea istoricului de comenzi.' });
     }
 });
 
-// API: Single Order Details (New endpoint for optimized MyOrders page)
+
+// API: Single Order Details (for optimized MyOrders page)
 app.get('/api/order-details/:order_number', async (req, res) => {
     try {
         const { order_number } = req.params;
-        // Basic security: Check token, but for this app it's okay to fetch by order number if known
-        // In a real app with users, you'd verify ownership.
         const [orders] = await pool.execute('SELECT * FROM orders WHERE order_number = ?', [order_number]);
         if (orders.length === 0) return res.status(404).json({ error: 'Comanda nu a fost gasita' });
         

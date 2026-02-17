@@ -90,7 +90,7 @@ Based on `DESCRIBE` output from the live database.
 | `discount_code` | `varchar(50)` | YES | | NULL | |
 | `discount_amount` | `decimal(10,2)` | YES | | 0.00 | |
 | `final_total` | `decimal(10,2)` | NO | | NULL | |
-| `status` | `enum('new','in_progress','in_delivery','complete','cancelled')` | YES | | 'new' | |
+| `status` | `enum('new','processing','in_delivery','complete','cancelled')` | YES | | 'new' | |
 | `created_at` | `timestamp` | YES | | CURRENT_TIMESTAMP | |
 
 ### Table: `order_items`
@@ -126,7 +126,10 @@ Based on `DESCRIBE` output from the live database.
 ### Key Pages
 *   **Shop (`/shop`):** Lists products. Uses `URLSearchParams` for filters (Category, Manufacturer, Protocol, Stock Status).
 *   **Checkout (`/checkout`):** Collects Billing/Shipping info. Submits payload to `/api/orders`. Generates `sm_client_token` if missing.
-*   **My Orders (`/my-orders`):** Fetches order history using the browser's `sm_client_token`.
+*   **My Orders (`/my-orders`):** Optimized for performance.
+    1.  **Initial Load:** Fetches a list of order summaries from `/api/order-history` based on the client's token OR IP address. This list is cached in `localStorage`. Previously opened order details are preserved from the cache.
+    2.  **Details View:** When an order is expanded, full details (items, status) are fetched on-demand from `/api/order-details/:id` and then saved to the cache.
+    3.  **Refresh:** A refresh button with a configurable, persistent cooldown allows re-fetching details and updating the cache.
 *   **Admin (`/admin`):** Admin route and component exist but are currently hidden from the UI.
 
 ---
@@ -138,7 +141,8 @@ Based on `DESCRIBE` output from the live database.
 | `GET` | `/api/products` | Accepts `category`, `manufacturer`, `protocol`, `search`, `include_inactive`, `stock_status`. |
 | `GET` | `/api/products/:id` | Returns single product details. |
 | `GET` | `/api/validate-discount` | Accepts `code`. Returns discount details or 404. |
-| `GET` | `/api/my-orders` | Accepts `token`. Returns orders for that client token. |
+| `GET` | `/api/order-history` | Accepts `token`. Returns order summaries matching token OR request IP. |
+| `GET` | `/api/order-details/:order_number` | Returns full details for a single order. |
 | `POST` | `/api/orders` | Creates Order & OrderItems in DB (Transaction). Sends Email. |
 | `POST` | `/api/contact` | Sends contact form email via SMTP. |
 
@@ -155,8 +159,9 @@ Based on `DESCRIBE` output from the live database.
 *   [ ] **Admin:** Currently hidden. Needs real auth and DB write endpoints.
 
 ### Recent Changelog
+*   **MyOrders Page Optimization:** Refactored the MyOrders page for performance. It now fetches a list of order summaries by token OR IP on initial load, caching the result. Full order details are fetched on-demand when an order is expanded and are also cached. A refresh button with a persistent cooldown allows updating cached details.
 *   **Order ID Generation:** Implemented a robust order numbering system (`ORD-YYYY-ID`) using the database auto-increment ID to guarantee uniqueness.
-*   **Order Statuses:** Aligned email status with DB. Updated DB schema to support `new`, `in_progress`, `in_delivery`, `complete`, `cancelled`. Added translations.
+*   **Order Statuses:** Aligned email status with DB. Updated DB schema to support `new`, `processing`, `in_delivery`, `complete`, `cancelled`. Added translations.
 *   **Email Template:** Increased font size and container width for better readability.
 *   **Shop Filters:** Added an "Availability" filter for `in_stock` and `on_request`.
 *   **Internationalization (i18n):** Performed a full-app scan and moved hardcoded strings to the translation system.

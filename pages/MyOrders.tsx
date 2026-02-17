@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Package, Calendar, ChevronDown, ChevronUp, AlertCircle, Loader2 } from 'lucide-react';
+import { Package, Calendar, ChevronDown, ChevronUp, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 // Summary of an order stored in localStorage
@@ -17,7 +17,7 @@ interface FullOrder {
   created_at: string;
   final_total: string;
   status: string;
-  items: any[]; // Define more strictly if needed
+  items: any[]; 
 }
 
 // Combined state for the component
@@ -26,11 +26,18 @@ interface DisplayOrder extends CachedOrder {
     isLoadingDetails?: boolean;
 }
 
+// Read cooldown from environment variables with a fallback
+const COOLDOWN_MINUTES = parseInt(process.env.ORDER_REFRESH_COOLDOWN_MINUTES || '10', 10);
+const COOLDOWN_MS = COOLDOWN_MINUTES * 60 * 1000;
+const DEBUG_LEVEL = parseInt(process.env.DEBUG_LEVEL || '0', 10);
+
 const MyOrders: React.FC = () => {
   const { t } = useLanguage();
   const [orders, setOrders] = useState<DisplayOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [refreshCooldowns, setRefreshCooldowns] = useState<Record<string, number>>({});
+
 
   // Load initial summary from localStorage
   useEffect(() => {
@@ -64,6 +71,27 @@ const MyOrders: React.FC = () => {
         setOrders(prev => prev.map(o => o.orderNumber === orderNumber ? { ...o, isLoadingDetails: false } : o));
     }
   };
+
+  const handleRefresh = (orderNumber: string) => {
+    const lastRefresh = refreshCooldowns[orderNumber];
+    const now = Date.now();
+
+    if (lastRefresh && (now - lastRefresh < COOLDOWN_MS)) {
+        if (DEBUG_LEVEL > 0) {
+            const timeLeft = Math.round((COOLDOWN_MS - (now - lastRefresh)) / 1000);
+            console.log(`[DEBUG] Refresh for order ${orderNumber} is on cooldown. Try again in ${timeLeft}s.`);
+        }
+        return;
+    }
+    
+    if (DEBUG_LEVEL > 0) console.log(`[DEBUG] Refreshing order ${orderNumber}...`);
+    
+    fetchOrderDetails(orderNumber).then(() => {
+        setRefreshCooldowns(prev => ({ ...prev, [orderNumber]: now }));
+        if (DEBUG_LEVEL > 0) console.log(`[DEBUG] Order ${orderNumber} refreshed. Cooldown started for ${COOLDOWN_MINUTES} min.`);
+    });
+  };
+
 
   const toggleOrder = (orderNumber: string) => {
     const orderInState = orders.find(o => o.orderNumber === orderNumber);
@@ -153,11 +181,20 @@ const MyOrders: React.FC = () => {
                         </div>
                     ) : order.details ? (
                         <div>
-                            <div className="mb-4">
-                                <span className="text-xs text-gray-500 uppercase tracking-wider block mb-1">{t('orders.status')}</span>
-                                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${getStatusColor(order.details.status)}`}>
-                                    {t(`status.${order.details.status}`)}
-                                </span>
+                            <div className="flex items-center gap-4 mb-4">
+                                <div>
+                                    <span className="text-xs text-gray-500 uppercase tracking-wider block mb-1">{t('orders.status')}</span>
+                                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${getStatusColor(order.details.status)}`}>
+                                        {t(`status.${order.details.status}`)}
+                                    </span>
+                                </div>
+                                <button 
+                                    onClick={() => handleRefresh(order.details!.order_number)}
+                                    title="Actualizează statusul comenzii"
+                                    className="p-2 text-gray-400 hover:text-primary hover:bg-gray-200 rounded-full transition-colors self-end"
+                                >
+                                    <RefreshCw size={16} />
+                                </button>
                             </div>
                             <h4 className="font-semibold text-slate-800 mb-4">{t('orders.items')}</h4>
                             <div className="overflow-x-auto">

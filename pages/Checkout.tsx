@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
@@ -39,7 +40,30 @@ const Checkout: React.FC = () => {
     }
     return token;
   };
-  // -----------------------------
+
+  // --- Save Order to Cache for MyOrders Page ---
+  const cacheOrderSummary = (orderNumber: string, finalTotal: number) => {
+      try {
+          const cacheKey = 'sm_order_history_cache';
+          const existingCache = localStorage.getItem(cacheKey);
+          const history = existingCache ? JSON.parse(existingCache) : [];
+          
+          history.unshift({
+              orderNumber: orderNumber,
+              date: new Date().toISOString(),
+              total: finalTotal
+          });
+
+          // Keep only the last 20 orders in cache to prevent excessive storage use
+          if (history.length > 20) {
+              history.pop();
+          }
+
+          localStorage.setItem(cacheKey, JSON.stringify(history));
+      } catch (e) {
+          console.error("Failed to cache order summary:", e);
+      }
+  };
 
   useEffect(() => {
     if (items.length === 0 && !submitted) {
@@ -73,7 +97,6 @@ const Checkout: React.FC = () => {
     const finalShipping = shippingSame ? billing : shipping;
     const clientToken = getClientToken();
 
-    // Payload cu date structurate
     const payload = {
         email: contactEmail,
         order_notes: orderNotes,
@@ -81,44 +104,33 @@ const Checkout: React.FC = () => {
         shipping: finalShipping,
         items: items,
         totals: {
-            subtotal: subtotal.toFixed(2),
-            discount: discountValue.toFixed(2),
+            subtotal: subtotal,
+            discount: discountValue,
             discountCode: discountCode,
-            total: total.toFixed(2)
+            total: total
         },
-        clientToken: clientToken // Sending token for history tracking
+        clientToken: clientToken
     };
 
-    if (DEBUG_LEVEL > 0) {
-        console.log('[Checkout] Submitting order payload...');
-        if (DEBUG_LEVEL > 1) {
-            // Safe to log addresses as they aren't critical secrets like passwords, but still handle with care
-            console.log(JSON.stringify({ ...payload, clientToken: '***' }, null, 2));
-        }
-    }
-
     try {
-        // Updated endpoint to match server.js definition
         const response = await fetch('/api/orders', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
         });
 
         const data = await response.json();
 
         if (response.ok) {
-             if (DEBUG_LEVEL > 0) console.log('[Checkout] Success. Order ID:', data.orderNumber);
              setSubmitted(true);
              clearCart();
+             // Cache the summary for the MyOrders page
+             cacheOrderSummary(data.orderNumber, payload.totals.total);
         } else {
              throw new Error(data.error || 'Server returned error');
         }
     } catch (error: any) {
         console.error("Order submission failed", error);
-        if (DEBUG_LEVEL > 0) console.error('[Checkout] API Error Detail:', error);
         alert(`Eroare la trimitere: ${error.message || "Verificați conexiunea."}`);
     } finally {
         setIsSubmitting(false);
@@ -140,7 +152,7 @@ const Checkout: React.FC = () => {
             onClick={() => navigate('/')} 
             className="bg-primary text-white py-3 px-8 rounded-lg font-bold hover:bg-slate-800 transition-colors"
           >
-            Back to Home
+            {t('checkout.back_home')}
           </button>
         </div>
       </div>
@@ -155,33 +167,20 @@ const Checkout: React.FC = () => {
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-8">
           
           <div className="md:col-span-2 space-y-8">
-            {/* Contact Section */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <h3 className="text-lg font-bold text-slate-900 mb-4 border-b pb-2">{t('checkout.contact')}</h3>
               <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.email')} *</label>
-                  <input 
-                    type="email" 
-                    required 
-                    value={contactEmail}
-                    onChange={(e) => setContactEmail(e.target.value)}
-                    className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent"
-                  />
+                  <input type="email" required value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{t('checkout.notes')}</label>
-                  <textarea 
-                    rows={3}
-                    value={orderNotes}
-                    onChange={(e) => setOrderNotes(e.target.value)}
-                    className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent"
-                  ></textarea>
+                  <textarea rows={3} value={orderNotes} onChange={(e) => setOrderNotes(e.target.value)} className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-1 focus:ring-accent focus:border-accent"></textarea>
                 </div>
               </div>
             </div>
 
-            {/* Billing Section */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <h3 className="text-lg font-bold text-slate-900 mb-4 border-b pb-2">{t('checkout.billing')}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -220,20 +219,13 @@ const Checkout: React.FC = () => {
               </div>
             </div>
 
-            {/* Shipping Toggle */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                <label className="flex items-center space-x-3 cursor-pointer">
-                 <input 
-                   type="checkbox" 
-                   checked={!shippingSame}
-                   onChange={() => setShippingSame(!shippingSame)}
-                   className="h-5 w-5 text-accent focus:ring-accent border-gray-300 rounded"
-                 />
-                 <span className="font-medium text-slate-800">Livrare diferită de facturare</span>
+                 <input type="checkbox" checked={!shippingSame} onChange={() => setShippingSame(!shippingSame)} className="h-5 w-5 text-accent focus:ring-accent border-gray-300 rounded" />
+                 <span className="font-medium text-slate-800">{t('checkout.diff_shipping')}</span>
                </label>
             </div>
 
-             {/* Shipping Section (Conditional) */}
              {!shippingSame && (
               <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 animate-fade-in">
                 <h3 className="text-lg font-bold text-slate-900 mb-4 border-b pb-2">{t('checkout.shipping')}</h3>
@@ -273,13 +265,10 @@ const Checkout: React.FC = () => {
                 </div>
               </div>
              )}
-
           </div>
-
-          {/* Order Review Sidebar */}
           <div className="md:col-span-1">
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 sticky top-6">
-              <h3 className="text-lg font-bold text-slate-900 mb-4 pb-2 border-b">{t('cart.title')}</h3>
+              <h3 className="text-lg font-bold text-slate-900 mb-4 pb-2 border-b">{t('cart.summary')}</h3>
               
               <ul className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2 scrollbar-hide">
                 {items.map(item => (
@@ -310,20 +299,15 @@ const Checkout: React.FC = () => {
                 </div>
               </div>
 
-              <button 
-                type="submit"
-                disabled={isSubmitting}
-                className={`w-full bg-accent text-white py-4 rounded-lg font-bold transition-all hover:bg-accent-hover ${isSubmitting ? 'opacity-75 cursor-wait' : ''}`}
-              >
+              <button type="submit" disabled={isSubmitting} className={`w-full bg-accent text-white py-4 rounded-lg font-bold transition-all hover:bg-accent-hover ${isSubmitting ? 'opacity-75 cursor-wait' : ''}`}>
                 {isSubmitting ? t('checkout.sending') : t('checkout.send')}
               </button>
               
               <p className="text-xs text-gray-400 mt-4 text-center">
-                Prin plasarea comenzii, sunteți de acord cu Termenii și Condițiile noastre.
+                {t('checkout.terms_notice')}
               </p>
             </div>
           </div>
-
         </form>
       </div>
     </div>

@@ -69,6 +69,10 @@ const MyOrders: React.FC = () => {
 
   // Load initial summaries from server, merge with cached details
   useEffect(() => {
+    if (DEBUG_LEVEL > 0) {
+        console.log(`[MyOrders] Cooldown is set to ${COOLDOWN_MINUTES} minutes (${COOLDOWN_MS}ms). If this value is incorrect, please restart the dev server.`);
+    }
+
     const loadOrderHistory = async () => {
         setLoading(true);
         try {
@@ -249,18 +253,15 @@ const MyOrders: React.FC = () => {
                 
                 let buttonTitle = "Actualizează statusul comenzii";
                 if (isOnCooldown) {
-                    const timeLeftSec = Math.ceil((COOLDOWN_MS - (now - lastRefresh)) / 1000);
-                    const timeLeftMin = Math.ceil(timeLeftSec / 60);
-                    if (timeLeftMin > 1) {
-                        buttonTitle = `Puteți actualiza din nou în aprox. ${timeLeftMin} minute.`;
-                    } else {
-                        buttonTitle = `Puteți actualiza din nou în aprox. ${timeLeftSec} secunde.`;
-                    }
+                    const timeLeftSecTotal = Math.ceil((COOLDOWN_MS - (now - lastRefresh)) / 1000);
+                    const minutes = Math.floor(timeLeftSecTotal / 60);
+                    const seconds = timeLeftSecTotal % 60;
+                    buttonTitle = `Puteți actualiza din nou în ${minutes > 0 ? `${minutes}m ` : ''}${seconds.toString().padStart(2, '0')}s.`;
                 }
 
-                const buttonClasses = `flex items-center gap-2 text-sm px-3 py-1.5 rounded-md transition-all ${
+                const buttonClasses = `flex items-center gap-2 text-sm px-3 py-1.5 rounded-md transition-all group ${
                     isOnCooldown 
-                    ? 'bg-slate-100 text-slate-400 cursor-pointer' 
+                    ? 'bg-slate-100 text-slate-500 cursor-pointer' 
                     : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
                 }`;
 
@@ -313,7 +314,7 @@ const MyOrders: React.FC = () => {
                                     title={buttonTitle}
                                     className={buttonClasses}
                                 >
-                                    <RefreshCw size={14} className={!isOnCooldown ? "group-hover:rotate-90 transition-transform" : ""} />
+                                    <RefreshCw size={14} className={`${!isOnCooldown ? "group-hover:rotate-90 transition-transform" : "opacity-50"}`} />
                                     Actualizează
                                 </button>
                             </div>

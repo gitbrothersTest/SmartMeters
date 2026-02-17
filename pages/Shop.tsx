@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, Filter, Check } from 'lucide-react';
@@ -16,7 +17,11 @@ const Shop: React.FC = () => {
   const [tempFilters, setTempFilters] = useState({
       category: searchParams.get('category') || 'ALL',
       manufacturer: searchParams.get('manufacturer') || 'ALL',
-      protocol: searchParams.get('protocol') || 'ALL'
+      protocol: searchParams.get('protocol') || 'ALL',
+      // Availability Checkboxes: Default both checked if URL param missing, else parse URL
+      stockStatus: searchParams.get('stockStatus') 
+        ? searchParams.get('stockStatus')!.split(',') 
+        : ['in_stock', 'on_request']
   });
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,15 +32,31 @@ const Shop: React.FC = () => {
       const cat = searchParams.get('category') || 'ALL';
       const man = searchParams.get('manufacturer') || 'ALL';
       const prot = searchParams.get('protocol') || 'ALL';
+      const stock = searchParams.get('stockStatus') 
+        ? searchParams.get('stockStatus')!.split(',') 
+        : ['in_stock', 'on_request'];
       
-      setTempFilters({ category: cat, manufacturer: man, protocol: prot });
+      setTempFilters({ category: cat, manufacturer: man, protocol: prot, stockStatus: stock });
       
       // Fetch initial data based on URL
-      fetchProducts({ category: cat, manufacturer: man, protocol: prot });
+      fetchProducts({ category: cat, manufacturer: man, protocol: prot, stockStatus: stock });
   }, []); // Run once on mount
 
   const handleFilterChange = (key: string, value: string) => {
       setTempFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleStockChange = (status: string) => {
+      setTempFilters(prev => {
+          const current = prev.stockStatus;
+          if (current.includes(status)) {
+              // Remove
+              return { ...prev, stockStatus: current.filter(s => s !== status) };
+          } else {
+              // Add
+              return { ...prev, stockStatus: [...current, status] };
+          }
+      });
   };
 
   const applyFilters = () => {
@@ -44,6 +65,8 @@ const Shop: React.FC = () => {
       if (tempFilters.category !== 'ALL') newParams.category = tempFilters.category;
       if (tempFilters.manufacturer !== 'ALL') newParams.manufacturer = tempFilters.manufacturer;
       if (tempFilters.protocol !== 'ALL') newParams.protocol = tempFilters.protocol;
+      if (tempFilters.stockStatus.length > 0) newParams.stockStatus = tempFilters.stockStatus.join(',');
+      
       setSearchParams(newParams);
 
       // 2. Fetch Data
@@ -54,7 +77,6 @@ const Shop: React.FC = () => {
   };
 
   // Hardcoded filter options (mapping to DB columns)
-  // In a more advanced version, these could come from an API call /api/filters
   const manufacturers = ['NoARK', 'SmartMeter', 'Siemens', 'AquaTech'];
   const protocols = ['Modbus', 'M-Bus', 'Pulse', 'RS485'];
 
@@ -88,7 +110,7 @@ const Shop: React.FC = () => {
                       onChange={() => handleFilterChange('category', 'ALL')}
                       className="text-accent focus:ring-accent"
                     />
-                    <span className="text-sm">All</span>
+                    <span className="text-sm">{t('shop.all')}</span>
                   </label>
                   {Object.values(ProductCategory).map(cat => (
                     <label key={cat} className="flex items-center space-x-2 cursor-pointer">
@@ -107,13 +129,13 @@ const Shop: React.FC = () => {
 
               {/* Manufacturer Filter */}
               <div className="mb-6">
-                <h4 className="font-semibold mb-3 text-sm text-gray-500 uppercase">Producător</h4>
+                <h4 className="font-semibold mb-3 text-sm text-gray-500 uppercase">{t('shop.manufacturer')}</h4>
                 <select 
                     value={tempFilters.manufacturer}
                     onChange={(e) => handleFilterChange('manufacturer', e.target.value)}
                     className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:border-accent outline-none"
                 >
-                    <option value="ALL">Toți</option>
+                    <option value="ALL">{t('shop.all')}</option>
                     {manufacturers.map(m => (
                         <option key={m} value={m}>{m}</option>
                     ))}
@@ -121,8 +143,8 @@ const Shop: React.FC = () => {
               </div>
 
               {/* Protocol Filter */}
-              <div className="mb-8">
-                <h4 className="font-semibold mb-3 text-sm text-gray-500 uppercase">Protocol</h4>
+              <div className="mb-6">
+                <h4 className="font-semibold mb-3 text-sm text-gray-500 uppercase">{t('shop.protocol')}</h4>
                 <div className="space-y-2">
                     <label className="flex items-center space-x-2 cursor-pointer">
                         <input 
@@ -132,7 +154,7 @@ const Shop: React.FC = () => {
                             onChange={() => handleFilterChange('protocol', 'ALL')}
                             className="text-accent focus:ring-accent"
                         />
-                        <span className="text-sm">Oricare</span>
+                        <span className="text-sm">{t('shop.any')}</span>
                     </label>
                     {protocols.map(p => (
                         <label key={p} className="flex items-center space-x-2 cursor-pointer">
@@ -149,12 +171,37 @@ const Shop: React.FC = () => {
                 </div>
               </div>
 
+              {/* Availability Filter (New) */}
+              <div className="mb-8">
+                <h4 className="font-semibold mb-3 text-sm text-gray-500 uppercase">{t('shop.availability')}</h4>
+                <div className="space-y-2">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            checked={tempFilters.stockStatus.includes('in_stock')}
+                            onChange={() => handleStockChange('in_stock')}
+                            className="text-accent focus:ring-accent rounded"
+                        />
+                        <span className="text-sm">{t('product.stock_in')}</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            checked={tempFilters.stockStatus.includes('on_request')}
+                            onChange={() => handleStockChange('on_request')}
+                            className="text-accent focus:ring-accent rounded"
+                        />
+                        <span className="text-sm">{t('product.stock_request')}</span>
+                    </label>
+                </div>
+              </div>
+
               {/* Apply Button */}
               <button 
                 onClick={applyFilters}
                 className="w-full bg-accent text-white py-2 rounded font-bold hover:bg-accent-hover transition-colors flex items-center justify-center gap-2"
               >
-                <Check size={16} /> Aplică Filtrele
+                <Check size={16} /> {t('shop.apply')}
               </button>
 
             </div>
@@ -190,12 +237,12 @@ const Shop: React.FC = () => {
             {isLoading ? (
                 <div className="text-center py-20">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto"></div>
-                    <p className="mt-4 text-gray-500">Se încarcă produsele...</p>
+                    <p className="mt-4 text-gray-500">{t('shop.loading')}</p>
                 </div>
             ) : error ? (
                 <div className="text-center py-20 text-red-500">
                     <p>{error}</p>
-                    <button onClick={applyFilters} className="mt-4 underline">Încearcă din nou</button>
+                    <button onClick={applyFilters} className="mt-4 underline">Try Again</button>
                 </div>
             ) : sortedProducts.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -205,7 +252,7 @@ const Shop: React.FC = () => {
               </div>
             ) : (
               <div className="text-center py-20">
-                <p className="text-gray-500 text-lg">Nu am găsit produse conform filtrelor selectate.</p>
+                <p className="text-gray-500 text-lg">{t('shop.no_results')}</p>
               </div>
             )}
           </div>

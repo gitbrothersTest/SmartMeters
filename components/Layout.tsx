@@ -30,10 +30,14 @@ const Layout: React.FC = () => {
             <a href="mailto:adrian.geanta@smartmeter.ro" className="mr-4 hover:text-white transition-colors">
               adrian.geanta@smartmeter.ro
             </a>
+            <span className="hidden sm:inline">+40 722 000 000</span>
           </div>
           <div className="flex items-center space-x-4">
+            <Link to="/admin" className="hover:text-white flex items-center gap-1">
+                <User size={12} /> <span className="font-medium">{t('nav.admin')}</span>
+            </Link>
+            <div className="w-px h-3 bg-gray-600 mx-2"></div>
             <Link to="/my-orders" className="flex items-center gap-1 hover:text-white cursor-pointer transition-colors">
-                <User size={12} />
                 <span className="font-medium">{t('nav.my_orders')}</span>
             </Link>
             <div className="w-px h-3 bg-gray-600 mx-2"></div>

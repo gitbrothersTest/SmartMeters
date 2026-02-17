@@ -30,6 +30,11 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
         if (filters.protocol && filters.protocol !== 'ALL') queryParams.append('protocol', filters.protocol);
         if (filters.search) queryParams.append('search', filters.search);
         
+        // Pass stock_status array to API if it exists
+        if (filters.stockStatus && filters.stockStatus.length > 0) {
+            queryParams.append('stock_status', filters.stockStatus.join(','));
+        }
+
         // Add support for fetching inactive products (e.g. for Admin)
         if (filters.includeInactive) queryParams.append('include_inactive', 'true');
 
@@ -67,6 +72,10 @@ export const ProductProvider: React.FC<{ children: ReactNode }> = ({ children })
                 p.name.toLowerCase().includes(term) || 
                 p.sku.toLowerCase().includes(term)
             );
+        }
+        
+        if (filters.stockStatus && filters.stockStatus.length > 0) {
+            filtered = filtered.filter(p => filters.stockStatus.includes(p.stockStatus));
         }
         
         setProducts(filtered);

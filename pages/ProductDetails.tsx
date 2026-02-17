@@ -62,7 +62,7 @@ const ProductDetails: React.FC = () => {
     return (
       <div className="container mx-auto px-4 py-20 text-center">
         <h2 className="text-2xl font-bold mb-4">{error || 'Product Not Found'}</h2>
-        <Link to="/shop" className="text-accent hover:underline">Return to Shop</Link>
+        <Link to="/shop" className="text-accent hover:underline">{t('product.back_to_shop')}</Link>
       </div>
     );
   }
@@ -81,8 +81,8 @@ Doresc documentatia pentru produsul ${product.name} cu codul SKU ${product.sku}
 
 Va multumesc!`;
 
-  // Determine availability (out_of_stock is visible but unbuyable)
-  const isOutOfStock = product.stockStatus === 'out_of_stock';
+  // Determine availability
+  const isUnavailable = !product.isActive || product.stockStatus === 'out_of_stock';
 
   return (
     <div className="bg-gray-50 py-12 min-h-screen">
@@ -97,7 +97,7 @@ Va multumesc!`;
         </div>
 
         <Link to="/shop" className="inline-flex items-center text-gray-500 hover:text-accent mb-6">
-          <ArrowLeft size={16} className="mr-1" /> Back to Shop
+          <ArrowLeft size={16} className="mr-1" /> {t('product.back_to_shop')}
         </Link>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -105,9 +105,9 @@ Va multumesc!`;
             {/* Image Section */}
             <div className="lg:w-1/2 p-8 bg-white flex items-center justify-center border-b lg:border-b-0 lg:border-r border-gray-100 relative min-h-[400px]">
                 <div className="absolute top-4 left-4 z-10">
-                    {isOutOfStock ? (
+                    {isUnavailable ? (
                         <span className="bg-gray-200 text-gray-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                            {t('product.out_of_stock')}
+                            {product.stockStatus === 'out_of_stock' ? t('product.out_of_stock') : t('product.unavailable')}
                         </span>
                     ) : product.stockStatus === 'in_stock' ? (
                         <span className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
@@ -122,7 +122,7 @@ Va multumesc!`;
               <img 
                 src={product.image} 
                 alt={product.name}
-                className={`max-h-[500px] w-auto object-contain mix-blend-multiply transition-transform hover:scale-105 duration-500 ${isOutOfStock ? 'grayscale opacity-70' : ''}`}
+                className={`max-h-[500px] w-auto object-contain mix-blend-multiply transition-transform hover:scale-105 duration-500 ${isUnavailable ? 'grayscale opacity-70' : ''}`}
               />
             </div>
 
@@ -145,10 +145,10 @@ Va multumesc!`;
 
               {/* Price & Cart Block */}
               <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 mb-8">
-                {isOutOfStock ? (
+                {isUnavailable ? (
                     <div className="text-center py-4">
-                        <span className="text-2xl font-bold text-gray-400 uppercase tracking-wider block mb-2">{t('product.out_of_stock')}</span>
-                        <p className="text-sm text-gray-500">Acest produs nu mai este disponibil momentan.</p>
+                        <span className="text-2xl font-bold text-gray-400 uppercase tracking-wider block mb-2">{t('product.unavailable')}</span>
+                        <p className="text-sm text-gray-500">Acest produs nu este momentan disponibil pentru comandă.</p>
                     </div>
                 ) : (
                     <>
@@ -195,7 +195,7 @@ Va multumesc!`;
                                 <FileText size={24} />
                             </div>
                             <div>
-                                <span className="block font-semibold text-slate-800">Fișa Tehnică (Datasheet)</span>
+                                <span className="block font-semibold text-slate-800">{t('product.datasheet')}</span>
                                 <span className="text-xs text-gray-500">PDF Document</span>
                             </div>
                         </div>
@@ -215,15 +215,15 @@ Va multumesc!`;
                                 <FileQuestion size={24} />
                             </div>
                             <div>
-                                <span className="block font-semibold text-slate-800">Documentație Indisponibilă Online</span>
-                                <span className="text-xs text-gray-500">Solicită fișa tehnică direct de la echipa noastră.</span>
+                                <span className="block font-semibold text-slate-800">{t('product.docs_unavailable')}</span>
+                                <span className="text-xs text-gray-500">{t('product.docs_request_sub')}</span>
                             </div>
                         </div>
                         <Link 
                             to={`/contact?message=${encodeURIComponent(requestMessage)}`}
                             className="bg-white text-amber-700 border border-amber-200 px-4 py-2 rounded font-medium text-sm flex items-center gap-2 hover:bg-amber-600 hover:text-white transition-all whitespace-nowrap"
                         >
-                            Solicită Documentație
+                            {t('product.request_docs')}
                         </Link>
                     </div>
                 )}

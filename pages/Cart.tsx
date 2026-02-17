@@ -141,7 +141,7 @@ const Cart: React.FC = () => {
           {/* Summary Sidebar */}
           <div className="w-full lg:w-96 flex-shrink-0">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <h3 className="text-lg font-bold text-slate-900 mb-6 pb-2 border-b border-gray-100">Order Summary</h3>
+              <h3 className="text-lg font-bold text-slate-900 mb-6 pb-2 border-b border-gray-100">{t('cart.summary')}</h3>
               
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-gray-600">
@@ -155,7 +155,7 @@ const Cart: React.FC = () => {
                     <div className="flex items-center gap-1">
                       <Tag size={14} />
                       <span className="text-sm">Code: {discountCode}</span>
-                      <button onClick={removeDiscount} className="ml-1 text-xs hover:underline text-red-500">(remove)</button>
+                      <button onClick={removeDiscount} className="ml-1 text-xs hover:underline text-red-500">({t('cart.remove')})</button>
                     </div>
                     <span>-{discountValue.toFixed(2)} RON</span>
                   </div>
@@ -183,7 +183,7 @@ const Cart: React.FC = () => {
                 )}
                 
                 <div className="flex justify-between text-gray-500 text-sm">
-                  <span>VAT (19% included)</span>
+                  <span>{t('cart.vat_included')}</span>
                   <span>{((total * 19) / 119).toFixed(2)} RON</span>
                 </div>
                 

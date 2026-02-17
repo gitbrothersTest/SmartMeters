@@ -34,49 +34,30 @@ const envPath = path.join(__dirname, '.env');
 require('dotenv').config({ path: envPath });
 
 // --- SERVE EXTERNAL IMAGES (SMART RESOLVER) ---
-// Priority 1: Path from .env
-// Priority 2: Hardcoded Production Path
 const EXTERNAL_IMAGES_PATH = process.env.PRODUCT_IMAGES_PATH || '/home/smartmet/images/SmartMeters/Products';
 const LOCAL_IMAGES_PATH = path.join(__dirname, 'public/images/products');
 
-// Helper to convert DB absolute path to Web URL
 const normalizeImageUrl = (dbPath) => {
     if (!dbPath) return '';
-    
-    // If it's already a web URL (http/https), leave it
     if (dbPath.startsWith('http')) return dbPath;
-
-    // If it's the absolute server path, replace it with the web alias
     if (dbPath.startsWith(EXTERNAL_IMAGES_PATH)) {
         return dbPath.replace(EXTERNAL_IMAGES_PATH, '/product-images');
     }
-    
-    // If it's already a relative path but misses the alias (fallback)
     if (!dbPath.startsWith('/product-images') && !dbPath.startsWith('/')) {
         return `/product-images/${dbPath}`;
     }
-
     return dbPath;
 };
 
-// Middleware to find image with extension if URL doesn't have one
 app.use('/product-images', (req, res, next) => {
-    // Safety check: prevent directory traversal
     if (req.path.includes('..')) return res.status(403).send('Forbidden');
-
-    // If the path already has an extension, let express.static handle it or 404
     if (path.extname(req.path)) {
         return next();
     }
-
-    // SKU is the path without the leading slash
     const sku = req.path.substring(1); 
-    // Updated extensions list to include uppercase variations for Linux case sensitivity
     const extensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.PNG', '.JPG', '.JPEG', '.WEBP', '.GIF'];
-    
     let foundPath = null;
 
-    // 1. Check External Path
     if (fs.existsSync(EXTERNAL_IMAGES_PATH)) {
         for (const ext of extensions) {
             const testPath = path.join(EXTERNAL_IMAGES_PATH, sku + ext);
@@ -86,8 +67,6 @@ app.use('/product-images', (req, res, next) => {
             }
         }
     }
-    
-    // 2. Check Local Development Path if not found externally
     if (!foundPath && fs.existsSync(LOCAL_IMAGES_PATH)) {
         for (const ext of extensions) {
             const testPath = path.join(LOCAL_IMAGES_PATH, sku + ext);
@@ -97,47 +76,20 @@ app.use('/product-images', (req, res, next) => {
             }
         }
     }
-
-    if (foundPath) {
-        if (DEBUG_LEVEL > 0) console.log(`[Image Resolver] Found: ${sku} -> ${foundPath}`);
-        return res.sendFile(foundPath);
-    } else {
-        if (DEBUG_LEVEL > 0) console.log(`[Image Resolver] MISSING: ${sku} (Checked: ${EXTERNAL_IMAGES_PATH} & ${LOCAL_IMAGES_PATH})`);
-    }
-
+    if (foundPath) return res.sendFile(foundPath);
     next();
 });
 
-// Serve static directories if they exist (for direct access with extension)
-if (fs.existsSync(EXTERNAL_IMAGES_PATH)) {
-    console.log(`[Server] Serving external images from: ${EXTERNAL_IMAGES_PATH}`);
-    app.use('/product-images', express.static(EXTERNAL_IMAGES_PATH));
-}
-
-if (fs.existsSync(LOCAL_IMAGES_PATH)) {
-    console.log(`[Server] Serving local images from: ${LOCAL_IMAGES_PATH}`);
-    app.use('/product-images', express.static(LOCAL_IMAGES_PATH));
-} else {
-    // Create the directory if it doesn't exist (helpful for dev)
-    try {
-        fs.mkdirSync(LOCAL_IMAGES_PATH, { recursive: true });
-        console.log(`[Server] Created local image directory: ${LOCAL_IMAGES_PATH}`);
-    } catch(e) {
-        console.error(`[Server] Could not create local image directory: ${e.message}`);
-    }
-}
+if (fs.existsSync(EXTERNAL_IMAGES_PATH)) app.use('/product-images', express.static(EXTERNAL_IMAGES_PATH));
+if (fs.existsSync(LOCAL_IMAGES_PATH)) app.use('/product-images', express.static(LOCAL_IMAGES_PATH));
+else try { fs.mkdirSync(LOCAL_IMAGES_PATH, { recursive: true }); } catch(e) {}
 
 // --- DATABASE CONNECTION STRATEGY ---
 let pool;
 const useTunnel = process.env.USE_HTTP_TUNNEL === 'true';
 
 if (useTunnel) {
-    console.log('------------------------------------------------');
     console.log('[TUNNEL] Mod activ: HTTP TUNNELING');
-    console.log(`[TUNNEL] Target: ${process.env.DB_TUNNEL_URL}`);
-    console.log('------------------------------------------------');
-
-    // Tunnel Adapter: Mimics the mysql2 pool interface but uses fetch to talk to PHP
     pool = {
         execute: async (sql, params) => {
             try {
@@ -149,21 +101,12 @@ if (useTunnel) {
                     },
                     body: JSON.stringify({ sql, params })
                 });
-
-                if (!response.ok) {
-                    const text = await response.text();
-                    throw new Error(`Bridge Error (${response.status}): ${text}`);
-                }
-
+                if (!response.ok) throw new Error(`Bridge Error (${response.status}): ${await response.text()}`);
                 const result = await response.json();
                 if (result.error) throw new Error(result.error);
-
-                // Mimic mysql2 return format: [rows, fields] (we omit fields for now)
-                // If it's an insert, structure it properly
                 if (result.insertId !== undefined) {
                     return [{ insertId: result.insertId, affectedRows: result.affectedRows }, null];
                 }
-                
                 return [result.rows || [], null];
             } catch (err) {
                 console.error('[TUNNEL ERROR]', err.message);
@@ -171,25 +114,18 @@ if (useTunnel) {
             }
         },
         getConnection: async () => {
-            // In HTTP Tunnel mode, we don't have real persistent connections or transactions.
-            // We return a dummy object that just executes queries directly.
-            // WARNING: Transactions (beginTransaction/commit) are NO-OPs here. 
-            // Data integrity isn't guaranteed if a multi-step order fails halfway, 
-            // but this is acceptable for local development.
             return {
                 execute: async (sql, params) => pool.execute(sql, params),
-                beginTransaction: async () => logDebug('TUNNEL', 'Fake Transaction Started'),
-                commit: async () => logDebug('TUNNEL', 'Fake Transaction Committed'),
-                rollback: async () => logDebug('TUNNEL', 'Fake Transaction Rolled Back'),
+                beginTransaction: async () => {},
+                commit: async () => {},
+                rollback: async () => {},
                 release: () => {}
             };
         }
     };
 } else {
-    // Standard MySQL Connection
-    const dbHost = process.env.DB_HOST || 'localhost';
-    const dbConfig = {
-        host: dbHost,
+    pool = mysql.createPool({
+        host: process.env.DB_HOST || 'localhost',
         user: process.env.DB_USER,
         password: process.env.DB_PASS,
         database: process.env.DB_NAME,
@@ -198,33 +134,16 @@ if (useTunnel) {
         queueLimit: 0,
         decimalNumbers: true,
         connectTimeout: 10000 
-    };
-
-    pool = mysql.createPool(dbConfig);
-    
-    // Test connection
-    (async () => {
-        try {
-            const connection = await pool.getConnection();
-            console.log(`[MySQL] Conexiune reușită la baza de date (${dbHost})!`);
-            connection.release();
-        } catch (err) {
-            console.error('------------------------------------------------');
-            console.error(`[MySQL] EROARE FATALĂ: Nu s-a putut conecta la baza de date (${dbHost}).`);
-            console.error(`Eroare: ${err.code} - ${err.message}`);
-            console.error('------------------------------------------------');
-        }
-    })();
+    });
 }
 
 // 3. API Produse (Citire cu Filtre Dinamice)
 app.get('/api/products', async (req, res) => {
     try {
-        const { category, manufacturer, protocol, search, include_inactive } = req.query;
+        const { category, manufacturer, protocol, search, include_inactive, stock_status } = req.query;
         let query = 'SELECT * FROM products WHERE 1=1';
         const params = [];
 
-        // Visibility Check: Only show active products unless explicitly requested (e.g. by admin)
         if (include_inactive !== 'true') {
             query += ' AND is_active = 1';
         }
@@ -245,6 +164,16 @@ app.get('/api/products', async (req, res) => {
             query += ' AND (name LIKE ? OR sku LIKE ?)';
             params.push(`%${search}%`, `%${search}%`);
         }
+        
+        // Stock Status Filter (supports multiple comma-separated values)
+        if (stock_status) {
+            const statuses = stock_status.split(',').filter(s => s.trim() !== '');
+            if (statuses.length > 0) {
+                const placeholders = statuses.map(() => '?').join(',');
+                query += ` AND stock_status IN (${placeholders})`;
+                params.push(...statuses);
+            }
+        }
 
         query += ' ORDER BY created_at DESC';
         const [rows] = await pool.execute(query, params);
@@ -254,9 +183,9 @@ app.get('/api/products', async (req, res) => {
             shortDescription: typeof p.short_description === 'string' ? JSON.parse(p.short_description) : p.short_description,
             fullDescription: typeof p.full_description === 'string' ? JSON.parse(p.full_description) : p.full_description,
             specs: typeof p.specs === 'string' ? JSON.parse(p.specs) : p.specs,
-            image: normalizeImageUrl(p.image_url), // Apply URL normalization here
+            image: normalizeImageUrl(p.image_url),
             stockStatus: p.stock_status,
-            isActive: !!p.is_active, // Convert 0/1 to boolean
+            isActive: !!p.is_active,
             datasheetUrl: p.datasheet_url
         }));
 
@@ -273,18 +202,14 @@ app.get('/api/products/:id', async (req, res) => {
         if (rows.length === 0) return res.status(404).json({ error: 'Produs inexistent' });
 
         const p = rows[0];
-        
-        // Allow fetch, but front-end might choose to hide it if isActive=false. 
-        // Or we could block it here. For now, let's return it so Admin can edit it by ID if needed.
-        
         const product = {
             ...p,
             shortDescription: typeof p.short_description === 'string' ? JSON.parse(p.short_description) : p.short_description,
             fullDescription: typeof p.full_description === 'string' ? JSON.parse(p.full_description) : p.full_description,
             specs: typeof p.specs === 'string' ? JSON.parse(p.specs) : p.specs,
-            image: normalizeImageUrl(p.image_url), // Apply URL normalization here
+            image: normalizeImageUrl(p.image_url),
             stockStatus: p.stock_status,
-            isActive: !!p.is_active, // Convert 0/1 to boolean
+            isActive: !!p.is_active,
             datasheetUrl: p.datasheet_url
         };
         res.json(product);
@@ -294,7 +219,6 @@ app.get('/api/products/:id', async (req, res) => {
     }
 });
 
-// 3.5 API Discount Validation
 app.get('/api/validate-discount', async (req, res) => {
     const { code } = req.query;
     try {
@@ -302,12 +226,10 @@ app.get('/api/validate-discount', async (req, res) => {
         if (rows.length > 0) res.json(rows[0]);
         else res.status(404).json({ error: 'Cod invalid sau expirat' });
     } catch (err) {
-        console.error('[API Discount] Error:', err);
         res.status(500).json({ error: 'Eroare validare DB' });
     }
 });
 
-// 4. API Client Orders (Istoric Comenzi)
 app.get('/api/my-orders', async (req, res) => {
     try {
         const { token } = req.query;
@@ -324,15 +246,16 @@ app.get('/api/my-orders', async (req, res) => {
         }
         res.json(orders);
     } catch (err) {
-        console.error('[API My Orders] Error:', err);
         res.status(500).json({ error: 'Eroare la preluarea comenzilor.' });
     }
 });
 
-// 5. API Comenzi (Tranzacțional)
+// 5. API Comenzi (Safe Auto-Increment ID)
 app.post('/api/orders', async (req, res) => {
     const { email, billing, shipping, items, totals, order_notes, clientToken } = req.body;
-    const orderNumber = `ORD-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+    
+    // We use a temporary placeholder for order_number, then update it with the ID.
+    const tempOrderNumber = 'PENDING-' + Date.now();
 
     try {
         const conn = await pool.getConnection();
@@ -340,12 +263,13 @@ app.post('/api/orders', async (req, res) => {
             const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
             await conn.beginTransaction();
 
+            // 1. Insert Order
             const [orderResult] = await conn.execute(
                 `INSERT INTO orders 
                 (order_number, client_token, client_ip, customer_email, billing_details, shipping_details, order_notes, subtotal, discount_code, discount_amount, final_total, status)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new')`,
                 [
-                    orderNumber,
+                    tempOrderNumber,
                     clientToken,
                     clientIp,
                     email,
@@ -359,9 +283,15 @@ app.post('/api/orders', async (req, res) => {
                 ]
             );
 
-            // In MySQL2 standard, insertId is on the result object. In our tunnel wrapper, we return [{insertId: ...}]
-            // We need to handle both cases gracefully or ensure wrapper matches perfectly.
             const orderId = orderResult.insertId || orderResult[0]?.insertId; 
+            
+            // 2. Generate Safe Order Number based on ID: ORD-2025-000054
+            const year = new Date().getFullYear();
+            const idString = orderId.toString().padStart(6, '0');
+            const finalOrderNumber = `ORD-${year}-${idString}`;
+
+            // 3. Update the order with the final number
+            await conn.execute('UPDATE orders SET order_number = ? WHERE id = ?', [finalOrderNumber, orderId]);
 
             const itemValues = [];
             const placeholders = items.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
@@ -379,10 +309,10 @@ app.post('/api/orders', async (req, res) => {
 
             await conn.commit();
             
-            // Trimite email asincron (nu bloca răspunsul)
-            sendOrderEmail(orderNumber, req.body).catch(err => console.error("Email error:", err));
+            // Send email with the FINAL order number
+            sendOrderEmail(finalOrderNumber, req.body).catch(err => console.error("Email error:", err));
 
-            res.status(201).json({ success: true, orderNumber, message: 'Comanda a fost înregistrată.' });
+            res.status(201).json({ success: true, orderNumber: finalOrderNumber, message: 'Comanda a fost înregistrată.' });
 
         } catch (err) {
             await conn.rollback();
@@ -397,7 +327,6 @@ app.post('/api/orders', async (req, res) => {
     }
 });
 
-// 6. API Contact Form
 app.post('/api/contact', async (req, res) => {
     try {
         const { name, email, phone, message } = req.body;
@@ -412,7 +341,7 @@ app.post('/api/contact', async (req, res) => {
         });
 
         const htmlContent = `
-        <div style="padding: 20px;">
+        <div style="padding: 20px; font-size: 18px;">
             <h2>Mesaj Nou de pe SmartMeter.ro</h2>
             <p><strong>Nume:</strong> ${name}</p>
             <p><strong>Email:</strong> ${email}</p>
@@ -440,7 +369,6 @@ app.post('/api/contact', async (req, res) => {
     }
 });
 
-// 7. API Admin: Import/Sync Products from JSON
 app.post('/api/admin/import-products', async (req, res) => {
     try {
         const productsFile = path.join(__dirname, 'products_import.json');
@@ -451,9 +379,6 @@ app.post('/api/admin/import-products', async (req, res) => {
         const fileContent = fs.readFileSync(productsFile, 'utf-8');
         const products = JSON.parse(fileContent);
 
-        console.log(`[Import] Found ${products.length} products to sync.`);
-
-        // Updated Query: Includes is_active defaulting to 0 if not specified (though SQL default handles it too)
         const upsertQuery = `
             INSERT INTO products 
             (sku, name, category, manufacturer, series, mounting, protocol, max_capacity, price, currency, stock_status, is_active, image_url, datasheet_url, short_description, full_description, specs)
@@ -493,8 +418,6 @@ app.post('/api/admin/import-products', async (req, res) => {
                 p.price,
                 p.currency,
                 p.stock_status,
-                // Default to 0 (inactive) if not specified, unless updating existing where we want to keep current state? 
-                // Actually, for import, usually you want to control it via JSON. If missing in JSON, defaulting to 0 is safer.
                 p.is_active !== undefined ? (p.is_active ? 1 : 0) : 0, 
                 p.image_url,
                 p.datasheet_url,
@@ -526,39 +449,42 @@ async function sendOrderEmail(orderNumber, data) {
         tls: { rejectUnauthorized: false }
     });
 
+    // Font size increased to 18px (from approx 14px default) and width to 1000px
+    const baseFontSize = "18px";
+    
     const productsHtml = items.map((item) => `
         <tr style="border-bottom: 1px solid #f1f5f9;">
             <td style="padding: 12px;">
-                <div style="font-weight: bold; color: #0f172a;">${item.name}</div>
-                <div style="font-size: 11px; color: #94a3b8;">SKU: ${item.sku}</div>
+                <div style="font-weight: bold; color: #0f172a; font-size: ${baseFontSize};">${item.name}</div>
+                <div style="font-size: 14px; color: #94a3b8;">SKU: ${item.sku}</div>
             </td>
-            <td style="padding: 12px; text-align: center;">${item.quantity}</td>
-            <td style="padding: 12px; text-align: right;">${item.price} RON</td>
-            <td style="padding: 12px; text-align: right; font-weight: bold;">${(item.price * item.quantity).toFixed(2)} RON</td>
+            <td style="padding: 12px; text-align: center; font-size: ${baseFontSize};">${item.quantity}</td>
+            <td style="padding: 12px; text-align: right; font-size: ${baseFontSize};">${item.price} RON</td>
+            <td style="padding: 12px; text-align: right; font-weight: bold; font-size: ${baseFontSize};">${(item.price * item.quantity).toFixed(2)} RON</td>
         </tr>
     `).join('');
 
     const htmlContent = `
     <div style="font-family: sans-serif; background-color: #f5f5f5; padding: 20px;">
-        <div style="max-width: 800px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+        <div style="max-width: 1000px; margin: 0 auto; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
             <!-- Header -->
             <div style="background-color: #0f172a; color: white; padding: 30px;">
-                <h1 style="margin: 0; font-size: 24px;">Comandă Nouă #${orderNumber}</h1>
-                <p style="margin: 10px 0 0 0; opacity: 0.8;">Data: ${new Date().toLocaleDateString('ro-RO')} | Status: <span style="color: #4ade80;">În procesare</span></p>
+                <h1 style="margin: 0; font-size: 28px;">Comandă Nouă #${orderNumber}</h1>
+                <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: ${baseFontSize};">Data: ${new Date().toLocaleDateString('ro-RO')} | Status: <span style="color: #4ade80;">Comandă Primită (Nouă)</span></p>
             </div>
 
-            <div style="padding: 30px;">
+            <div style="padding: 30px; font-size: ${baseFontSize}; line-height: 1.6;">
                 <!-- Contact & Notes -->
-                <div style="background-color: #fffbeb; border-left: 4px solid #d97706; padding: 15px; margin-bottom: 30px;">
-                    <h3 style="margin: 0 0 10px 0; color: #92400e; font-size: 16px;">Contact & Notițe:</h3>
-                    <p style="margin: 0 0 10px 0; font-size: 14px;"><strong>Email Client:</strong> <a href="mailto:${email}" style="color: #2563eb;">${email}</a></p>
-                    <p style="margin: 0; font-size: 14px;"><strong>Notițe:</strong> ${order_notes ? order_notes : 'Nu există notite.'}</p>
+                <div style="background-color: #fffbeb; border-left: 6px solid #d97706; padding: 20px; margin-bottom: 30px;">
+                    <h3 style="margin: 0 0 10px 0; color: #92400e; font-size: 20px;">Contact & Notițe:</h3>
+                    <p style="margin: 0 0 10px 0;"><strong>Email Client:</strong> <a href="mailto:${email}" style="color: #2563eb;">${email}</a></p>
+                    <p style="margin: 0;"><strong>Notițe:</strong> ${order_notes ? order_notes : 'Nu există notite.'}</p>
                 </div>
 
                 <!-- Products -->
-                <h3 style="color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; font-size: 18px;">Produse din coș</h3>
-                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                    <thead style="background-color: #f1f5f9; color: #64748b; font-size: 12px; text-transform: uppercase;">
+                <h3 style="color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px;">Produse din coș</h3>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+                    <thead style="background-color: #f1f5f9; color: #64748b; font-size: 14px; text-transform: uppercase;">
                         <tr>
                             <th style="padding: 12px; text-align: left;">Produs</th>
                             <th style="padding: 12px; text-align: center;">Cantitate</th>
@@ -572,48 +498,48 @@ async function sendOrderEmail(orderNumber, data) {
                 </table>
 
                 <!-- Totals -->
-                <div style="text-align: right; margin-bottom: 40px;">
+                <div style="text-align: right; margin-bottom: 40px; font-size: ${baseFontSize};">
                     <p style="margin: 5px 0; color: #64748b;">Subtotal: ${totals.subtotal} RON</p>
                     ${Number(totals.discount) > 0 ? `<p style="margin: 5px 0; color: #16a34a;">Discount (${totals.discountCode}): -${totals.discount} RON</p>` : ''}
-                    <h2 style="color: #059669; margin: 10px 0 0 0;">TOTAL FINAL: ${totals.total} RON</h2>
+                    <h2 style="color: #059669; margin: 15px 0 0 0; font-size: 32px;">TOTAL FINAL: ${totals.total} RON</h2>
                 </div>
 
                 <!-- Client Details -->
-                <h3 style="color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; font-size: 18px;">Detalii Client</h3>
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                    <thead style="background-color: #f1f5f9; text-align: left; font-size: 12px;">
+                <h3 style="color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; font-size: 22px;">Detalii Client</h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: ${baseFontSize};">
+                    <thead style="background-color: #f1f5f9; text-align: left; font-size: 14px;">
                         <tr>
-                            <th style="padding: 10px;">Tip Adresă</th>
-                            <th style="padding: 10px;">Nume</th>
-                            <th style="padding: 10px;">Companie</th>
-                            <th style="padding: 10px;">Adresă</th>
-                            <th style="padding: 10px;">Oraș</th>
-                            <th style="padding: 10px;">Telefon</th>
+                            <th style="padding: 12px;">Tip Adresă</th>
+                            <th style="padding: 12px;">Nume</th>
+                            <th style="padding: 12px;">Companie</th>
+                            <th style="padding: 12px;">Adresă</th>
+                            <th style="padding: 12px;">Oraș</th>
+                            <th style="padding: 12px;">Telefon</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr style="border-bottom: 1px solid #f1f5f9;">
-                            <td style="padding: 10px; font-weight: bold;">Facturare</td>
-                            <td style="padding: 10px;">${billing.name}</td>
-                            <td style="padding: 10px;">${billing.company || '-'}</td>
-                            <td style="padding: 10px;">${billing.address1}</td>
-                            <td style="padding: 10px;">${billing.city}</td>
-                            <td style="padding: 10px;">${billing.phone}</td>
+                            <td style="padding: 12px; font-weight: bold;">Facturare</td>
+                            <td style="padding: 12px;">${billing.name}</td>
+                            <td style="padding: 12px;">${billing.company || '-'}</td>
+                            <td style="padding: 12px;">${billing.address1}</td>
+                            <td style="padding: 12px;">${billing.city}</td>
+                            <td style="padding: 12px;">${billing.phone}</td>
                         </tr>
                         <tr>
-                            <td style="padding: 10px; font-weight: bold;">Livrare</td>
-                            <td style="padding: 10px;">${shipping.name}</td>
-                            <td style="padding: 10px;">${shipping.company || '-'}</td>
-                            <td style="padding: 10px;">${shipping.address1}</td>
-                            <td style="padding: 10px;">${shipping.city}</td>
-                            <td style="padding: 10px;">${shipping.phone}</td>
+                            <td style="padding: 12px; font-weight: bold;">Livrare</td>
+                            <td style="padding: 12px;">${shipping.name}</td>
+                            <td style="padding: 12px;">${shipping.company || '-'}</td>
+                            <td style="padding: 12px;">${shipping.address1}</td>
+                            <td style="padding: 12px;">${shipping.city}</td>
+                            <td style="padding: 12px;">${shipping.phone}</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
             <!-- Footer -->
-            <div style="background-color: #f8fafc; padding: 20px; text-align: center; color: #94a3b8; font-size: 12px; border-top: 1px solid #e2e8f0;">
+            <div style="background-color: #f8fafc; padding: 30px; text-align: center; color: #94a3b8; font-size: 14px; border-top: 1px solid #e2e8f0;">
                 <p style="margin: 0;">Acest email a fost generat automat de SmartMeters.ro</p>
                 <p style="margin: 5px 0 0 0;">București, Romania | adrian.geanta@smartmeter.ro</p>
             </div>

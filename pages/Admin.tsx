@@ -3,9 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { useProducts } from '../context/ProductContext';
 import { Product, ProductCategory } from '../types';
 import { Edit, Trash, Plus, Save, X } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 const Admin: React.FC = () => {
   const { products, updateProduct, deleteProduct, addProduct, fetchProducts } = useProducts();
+  const { t } = useLanguage();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Product>>({});
   const [isAdding, setIsAdding] = useState(false);
@@ -68,19 +70,19 @@ const Admin: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-slate-800">Admin Dashboard</h1>
+        <h1 className="text-3xl font-bold text-slate-800">{t('admin.dashboard')}</h1>
         <button 
           onClick={() => setIsAdding(!isAdding)}
           className="bg-primary text-white px-4 py-2 rounded hover:bg-slate-700 flex items-center gap-2"
         >
-          <Plus size={18} /> Add Product
+          <Plus size={18} /> {t('admin.add_product')}
         </button>
       </div>
 
       {/* Add Product Form (Mock) */}
       {isAdding && (
           <div className="bg-white p-6 rounded shadow mb-8 border border-gray-200">
-              <h3 className="font-bold mb-4">New Product</h3>
+              <h3 className="font-bold mb-4">{t('admin.new_product')}</h3>
               <div className="grid grid-cols-2 gap-4 mb-4">
                   <input placeholder="Name" className="border p-2 rounded" value={newProductForm.name} onChange={e => setNewProductForm({...newProductForm, name: e.target.value})} />
                   <input placeholder="Manufacturer" className="border p-2 rounded" value={newProductForm.manufacturer} onChange={e => setNewProductForm({...newProductForm, manufacturer: e.target.value})} />
@@ -92,9 +94,9 @@ const Admin: React.FC = () => {
                   </select>
 
                   <select className="border p-2 rounded" value={newProductForm.stockStatus} onChange={e => setNewProductForm({...newProductForm, stockStatus: e.target.value as any})}>
-                      <option value="in_stock">In Stock</option>
-                      <option value="on_request">On Request</option>
-                      <option value="out_of_stock">Out of Stock</option>
+                      <option value="in_stock">{t('product.stock_in')}</option>
+                      <option value="on_request">{t('product.stock_request')}</option>
+                      <option value="out_of_stock">{t('product.out_of_stock')}</option>
                   </select>
 
                   <div className="flex items-center space-x-2">
@@ -105,12 +107,12 @@ const Admin: React.FC = () => {
                         onChange={e => setNewProductForm({...newProductForm, isActive: e.target.checked})}
                         className="h-5 w-5"
                       />
-                      <label htmlFor="new-active" className="font-medium">Active (Visible)</label>
+                      <label htmlFor="new-active" className="font-medium">{t('admin.active')}</label>
                   </div>
               </div>
               <div className="flex gap-2">
-                  <button onClick={handleCreate} className="bg-green-600 text-white px-4 py-2 rounded">Create</button>
-                  <button onClick={() => setIsAdding(false)} className="bg-gray-300 text-gray-800 px-4 py-2 rounded">Cancel</button>
+                  <button onClick={handleCreate} className="bg-green-600 text-white px-4 py-2 rounded">{t('admin.create')}</button>
+                  <button onClick={() => setIsAdding(false)} className="bg-gray-300 text-gray-800 px-4 py-2 rounded">{t('admin.cancel')}</button>
               </div>
           </div>
       )}

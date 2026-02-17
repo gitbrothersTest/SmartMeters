@@ -81,6 +81,9 @@ Doresc documentatia pentru produsul ${product.name} cu codul SKU ${product.sku}
 
 Va multumesc!`;
 
+  // Determine availability
+  const isUnavailable = !product.isActive || product.stockStatus === 'out_of_stock';
+
   return (
     <div className="bg-gray-50 py-12 min-h-screen">
       <div className="container mx-auto px-4">
@@ -102,7 +105,11 @@ Va multumesc!`;
             {/* Image Section */}
             <div className="lg:w-1/2 p-8 bg-white flex items-center justify-center border-b lg:border-b-0 lg:border-r border-gray-100 relative min-h-[400px]">
                 <div className="absolute top-4 left-4 z-10">
-                    {product.stockStatus === 'in_stock' ? (
+                    {isUnavailable ? (
+                        <span className="bg-gray-200 text-gray-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                            {product.stockStatus === 'out_of_stock' ? t('product.out_of_stock') : t('product.unavailable')}
+                        </span>
+                    ) : product.stockStatus === 'in_stock' ? (
                         <span className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                             {t('product.stock_in')}
                         </span>
@@ -115,7 +122,7 @@ Va multumesc!`;
               <img 
                 src={product.image} 
                 alt={product.name}
-                className="max-h-[500px] w-auto object-contain mix-blend-multiply transition-transform hover:scale-105 duration-500"
+                className={`max-h-[500px] w-auto object-contain mix-blend-multiply transition-transform hover:scale-105 duration-500 ${isUnavailable ? 'grayscale opacity-70' : ''}`}
               />
             </div>
 
@@ -138,20 +145,29 @@ Va multumesc!`;
 
               {/* Price & Cart Block */}
               <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 mb-8">
-                <div className="flex items-baseline mb-4">
-                    <span className="text-4xl font-bold text-slate-900">{product.price} <span className="text-2xl">{product.currency}</span></span>
-                    <span className="text-sm text-gray-500 ml-2 font-medium">+ TVA</span>
-                </div>
-                
-                <div className="flex flex-col sm:flex-row gap-3">
-                    <button 
-                    onClick={() => addToCart(product, 1)}
-                    className="flex-1 bg-accent text-white py-3.5 px-6 rounded-lg font-bold text-lg hover:bg-accent-hover transition-colors flex items-center justify-center gap-2 shadow-sm"
-                    >
-                    <ShoppingCart size={20} />
-                    {t('shop.add_to_cart')}
-                    </button>
-                </div>
+                {isUnavailable ? (
+                    <div className="text-center py-4">
+                        <span className="text-2xl font-bold text-gray-400 uppercase tracking-wider block mb-2">{t('product.unavailable')}</span>
+                        <p className="text-sm text-gray-500">Acest produs nu este momentan disponibil pentru comandă.</p>
+                    </div>
+                ) : (
+                    <>
+                        <div className="flex items-baseline mb-4">
+                            <span className="text-4xl font-bold text-slate-900">{product.price} <span className="text-2xl">{product.currency}</span></span>
+                            <span className="text-sm text-gray-500 ml-2 font-medium">+ TVA</span>
+                        </div>
+                        
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <button 
+                            onClick={() => addToCart(product, 1)}
+                            className="flex-1 bg-accent text-white py-3.5 px-6 rounded-lg font-bold text-lg hover:bg-accent-hover transition-colors flex items-center justify-center gap-2 shadow-sm"
+                            >
+                            <ShoppingCart size={20} />
+                            {t('shop.add_to_cart')}
+                            </button>
+                        </div>
+                    </>
+                )}
               </div>
 
               {/* SECTION: Description */}

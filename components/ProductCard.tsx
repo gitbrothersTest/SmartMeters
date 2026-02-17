@@ -14,6 +14,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { t, language } = useLanguage();
   const { addToCart } = useCart();
 
+  // Determine availability status
+  const isUnavailable = !product.isActive || product.stockStatus === 'out_of_stock';
+
   return (
     <div className="bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden group">
       {/* Image Container - Now Linked */}
@@ -21,14 +24,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <img
           src={product.image}
           alt={product.name}
-          className="max-h-full max-w-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
+          className={`max-h-full max-w-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500 ${isUnavailable ? 'grayscale opacity-70' : ''}`}
         />
         <div className="absolute top-2 right-2">
-            <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${
-                product.stockStatus === 'in_stock' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-            }`}>
-                {product.stockStatus === 'in_stock' ? t('product.stock_in') : t('product.stock_request')}
-            </span>
+            {isUnavailable ? (
+                <span className="text-[10px] font-bold px-2 py-1 rounded uppercase bg-gray-200 text-gray-700">
+                    {product.stockStatus === 'out_of_stock' ? t('product.out_of_stock') : t('product.unavailable')}
+                </span>
+            ) : (
+                <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${
+                    product.stockStatus === 'in_stock' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                }`}>
+                    {product.stockStatus === 'in_stock' ? t('product.stock_in') : t('product.stock_request')}
+                </span>
+            )}
         </div>
       </Link>
       
@@ -45,8 +54,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         
         <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
           <div className="flex flex-col">
-            <span className="text-xl font-bold text-slate-900">{product.price} {product.currency}</span>
-            <span className="text-[10px] text-gray-400">+ TVA</span>
+            {isUnavailable ? (
+                <span className="text-lg font-bold text-gray-400 uppercase tracking-wider">{t('product.unavailable')}</span>
+            ) : (
+                <>
+                    <span className="text-xl font-bold text-slate-900">{product.price} {product.currency}</span>
+                    <span className="text-[10px] text-gray-400">+ TVA</span>
+                </>
+            )}
           </div>
           
           <div className="flex space-x-2">
@@ -57,13 +72,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             >
               <Eye size={20} />
             </Link>
-            <button 
-              onClick={() => addToCart(product, 1)}
-              className="bg-primary text-white p-2 rounded hover:bg-accent transition-colors flex items-center gap-2"
-              title={t('shop.add_to_cart')}
-            >
-              <ShoppingCart size={18} />
-            </button>
+            {!isUnavailable && (
+                <button 
+                onClick={() => addToCart(product, 1)}
+                className="bg-primary text-white p-2 rounded hover:bg-accent transition-colors flex items-center gap-2"
+                title={t('shop.add_to_cart')}
+                >
+                <ShoppingCart size={18} />
+                </button>
+            )}
           </div>
         </div>
       </div>

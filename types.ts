@@ -31,7 +31,8 @@ export interface Product {
   category: ProductCategory;
   price: number;
   currency: string;
-  stockStatus: 'in_stock' | 'on_request';
+  stockStatus: 'in_stock' | 'on_request' | 'out_of_stock';
+  isActive: boolean; // Controls visibility/purchasability
   image: string;
   
   // Remaining detailed specs

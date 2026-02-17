@@ -251,6 +251,7 @@ app.get('/api/products', async (req, res) => {
             specs: typeof p.specs === 'string' ? JSON.parse(p.specs) : p.specs,
             image: normalizeImageUrl(p.image_url), // Apply URL normalization here
             stockStatus: p.stock_status,
+            isActive: !!p.is_active, // Convert 0/1 to boolean
             datasheetUrl: p.datasheet_url
         }));
 
@@ -274,6 +275,7 @@ app.get('/api/products/:id', async (req, res) => {
             specs: typeof p.specs === 'string' ? JSON.parse(p.specs) : p.specs,
             image: normalizeImageUrl(p.image_url), // Apply URL normalization here
             stockStatus: p.stock_status,
+            isActive: !!p.is_active, // Convert 0/1 to boolean
             datasheetUrl: p.datasheet_url
         };
         res.json(product);
@@ -442,10 +444,11 @@ app.post('/api/admin/import-products', async (req, res) => {
 
         console.log(`[Import] Found ${products.length} products to sync.`);
 
+        // Updated Query: Includes is_active defaulting to 0 if not specified (though SQL default handles it too)
         const upsertQuery = `
             INSERT INTO products 
-            (sku, name, category, manufacturer, series, mounting, protocol, max_capacity, price, currency, stock_status, image_url, datasheet_url, short_description, full_description, specs)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (sku, name, category, manufacturer, series, mounting, protocol, max_capacity, price, currency, stock_status, is_active, image_url, datasheet_url, short_description, full_description, specs)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE 
             name = VALUES(name),
             category = VALUES(category),
@@ -457,6 +460,7 @@ app.post('/api/admin/import-products', async (req, res) => {
             price = VALUES(price),
             currency = VALUES(currency),
             stock_status = VALUES(stock_status),
+            is_active = VALUES(is_active),
             image_url = VALUES(image_url),
             datasheet_url = VALUES(datasheet_url),
             short_description = VALUES(short_description),
@@ -480,6 +484,7 @@ app.post('/api/admin/import-products', async (req, res) => {
                 p.price,
                 p.currency,
                 p.stock_status,
+                p.is_active !== undefined ? (p.is_active ? 1 : 0) : 0, // Default to inactive (0) for safety/requirement
                 p.image_url,
                 p.datasheet_url,
                 JSON.stringify(p.short_description),

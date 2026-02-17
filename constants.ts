@@ -15,6 +15,7 @@ export const PRODUCTS: Product[] = [
     price: 450,
     currency: 'RON',
     stockStatus: 'in_stock',
+    isActive: true,
     image: 'https://picsum.photos/400/400?random=1',
     shortDescription: {
       ro: 'Contor electric trifazat industrial cu precizie clasa B.',
@@ -45,6 +46,7 @@ export const PRODUCTS: Product[] = [
     price: 320,
     currency: 'RON',
     stockStatus: 'in_stock',
+    isActive: true,
     image: 'https://picsum.photos/400/400?random=2',
     shortDescription: {
       ro: 'Apometru ultrasonic inteligent pentru apă rece.',
@@ -74,6 +76,7 @@ export const PRODUCTS: Product[] = [
     price: 850,
     currency: 'RON',
     stockStatus: 'on_request',
+    isActive: true,
     image: 'https://picsum.photos/400/400?random=3',
     shortDescription: {
       ro: 'Contor de gaz cu diafragmă și modul de comunicație.',
@@ -103,6 +106,7 @@ export const PRODUCTS: Product[] = [
     price: 680,
     currency: 'RON',
     stockStatus: 'in_stock',
+    isActive: true,
     image: 'https://picsum.photos/400/400?random=4',
     shortDescription: {
       ro: 'Contor de energie termică compact.',
@@ -152,6 +156,8 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     'product.category': 'Categorie',
     'product.stock_in': 'În stoc',
     'product.stock_request': 'La comandă',
+    'product.out_of_stock': 'Stoc Epuizat',
+    'product.unavailable': 'Indisponibil',
     'cart.title': 'Coșul Tău',
     'cart.empty': 'Coșul este gol.',
     'cart.product': 'Produs',
@@ -219,6 +225,8 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     'product.category': 'Category',
     'product.stock_in': 'In Stock',
     'product.stock_request': 'On Request',
+    'product.out_of_stock': 'Out of Stock',
+    'product.unavailable': 'Unavailable',
     'cart.title': 'Your Cart',
     'cart.empty': 'Your cart is empty.',
     'cart.product': 'Product',

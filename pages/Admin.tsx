@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useProducts } from '../context/ProductContext';
 import { Product, ProductCategory } from '../types';
@@ -9,7 +10,7 @@ const Admin: React.FC = () => {
   const [editForm, setEditForm] = useState<Partial<Product>>({});
   const [isAdding, setIsAdding] = useState(false);
 
-  // Initial state for new product
+  // Initial state for new product - ACTIVE defaults to FALSE
   const initialNewProduct: Product = {
     id: '',
     sku: '',
@@ -19,6 +20,7 @@ const Admin: React.FC = () => {
     price: 0,
     currency: 'RON',
     stockStatus: 'in_stock',
+    isActive: false, // Default to inactive/hidden
     image: 'https://picsum.photos/200',
     shortDescription: { ro: '', en: '' },
     fullDescription: { ro: '', en: '' },
@@ -79,9 +81,27 @@ const Admin: React.FC = () => {
                   <input placeholder="Manufacturer" className="border p-2 rounded" value={newProductForm.manufacturer} onChange={e => setNewProductForm({...newProductForm, manufacturer: e.target.value})} />
                   <input placeholder="SKU" className="border p-2 rounded" value={newProductForm.sku} onChange={e => setNewProductForm({...newProductForm, sku: e.target.value})} />
                   <input type="number" placeholder="Price" className="border p-2 rounded" value={newProductForm.price} onChange={e => setNewProductForm({...newProductForm, price: parseFloat(e.target.value)})} />
+                  
                   <select className="border p-2 rounded" value={newProductForm.category} onChange={e => setNewProductForm({...newProductForm, category: e.target.value as ProductCategory})}>
                       {Object.values(ProductCategory).map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
+
+                  <select className="border p-2 rounded" value={newProductForm.stockStatus} onChange={e => setNewProductForm({...newProductForm, stockStatus: e.target.value as any})}>
+                      <option value="in_stock">In Stock</option>
+                      <option value="on_request">On Request</option>
+                      <option value="out_of_stock">Out of Stock</option>
+                  </select>
+
+                  <div className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        id="new-active" 
+                        checked={newProductForm.isActive} 
+                        onChange={e => setNewProductForm({...newProductForm, isActive: e.target.checked})}
+                        className="h-5 w-5"
+                      />
+                      <label htmlFor="new-active" className="font-medium">Active (Visible)</label>
+                  </div>
               </div>
               <div className="flex gap-2">
                   <button onClick={handleCreate} className="bg-green-600 text-white px-4 py-2 rounded">Create</button>
@@ -97,8 +117,9 @@ const Admin: React.FC = () => {
             <tr>
               <th className="p-4 border-b">SKU</th>
               <th className="p-4 border-b">Name</th>
-              <th className="p-4 border-b">Category</th>
+              <th className="p-4 border-b">Status</th>
               <th className="p-4 border-b text-right">Price</th>
+              <th className="p-4 border-b text-center">Active</th>
               <th className="p-4 border-b text-center">Actions</th>
             </tr>
           </thead>
@@ -123,7 +144,15 @@ const Admin: React.FC = () => {
                   </td>
 
                   <td className="p-4 text-sm">
-                    {product.category}
+                    {isEditing ? (
+                        <select className="border border-gray-300 rounded px-2 py-1" value={editForm.stockStatus} onChange={(e) => setEditForm({...editForm, stockStatus: e.target.value as any})}>
+                            <option value="in_stock">In Stock</option>
+                            <option value="on_request">On Request</option>
+                            <option value="out_of_stock">Out of Stock</option>
+                        </select>
+                    ) : (
+                        product.stockStatus
+                    )}
                   </td>
                   
                   <td className="p-4 text-right font-bold text-slate-700">
@@ -137,6 +166,20 @@ const Admin: React.FC = () => {
                     ) : (
                       `${product.price} ${product.currency}`
                     )}
+                  </td>
+
+                  <td className="p-4 text-center">
+                      {isEditing ? (
+                          <input 
+                            type="checkbox" 
+                            checked={editForm.isActive} 
+                            onChange={(e) => setEditForm({...editForm, isActive: e.target.checked})} 
+                          />
+                      ) : (
+                          <span className={`px-2 py-1 rounded text-xs font-bold ${product.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {product.isActive ? 'Yes' : 'No'}
+                          </span>
+                      )}
                   </td>
 
                   <td className="p-4 flex justify-center space-x-2">

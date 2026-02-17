@@ -65,7 +65,8 @@ Based on `DESCRIBE` output from the live database.
 | `max_capacity` | `decimal(10,2)` | YES | | NULL | |
 | `price` | `decimal(10,2)` | NO | | NULL | |
 | `currency` | `varchar(10)` | YES | | 'RON' | |
-| `stock_status` | `enum('in_stock','on_request')` | YES | | 'in_stock' | |
+| `stock_status` | `enum('in_stock','on_request','out_of_stock')` | YES | | 'in_stock' | |
+| `is_active` | `tinyint(1)` | YES | | 0 | Default to hidden |
 | `image_url` | `varchar(500)` | YES | | NULL | |
 | `short_description` | `json` | YES | | NULL | |
 | `full_description` | `json` | YES | | NULL | |
@@ -158,6 +159,10 @@ Based on `DESCRIBE` output from the live database.
 *   **Fixed HTTP Tunnel:** Moved `DB_TUNNEL_SECRET` from Request Headers to Request Body.
 *   **Image Serving:** Updated `server.js` to normalize absolute DB paths (e.g., `/home/smartmet/...`) to web URLs (`/product-images/...`) dynamically in the API response.
 *   **Frontend Cleanup:** Removed `picsum` fallback from React components to rely solely on the server-resolved images.
+*   **Email Templates:** Adjusted email max-width to 800px, added fallback text for empty notes, and fixed conditional rendering for discount lines (only displayed if value > 0). **Status: Functional**.
+*   **UI Adjustments (Contact):** Removed the support phone number display card from the Contact page as requested (input field preserved). **Status: Functional**.
+*   **UI Adjustments (Header):** Converted the top-left email address into a clickable `mailto:` link. **Status: Functional**.
+*   **Product Availability:** Added `is_active` flag (defaults to false) and `out_of_stock` status. Updated UI to hide price and show unavailable status when applicable. **Status: Functional**.
 
 ---
 *End of Specification.*

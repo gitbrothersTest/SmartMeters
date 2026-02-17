@@ -79,7 +79,7 @@ Based on `DESCRIBE` output from the live database.
 | Field | Type | Null | Key | Default | Extra |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `id` | `int` | NO | PRI | NULL | auto_increment |
-| `order_number` | `varchar(20)` | NO | UNI | NULL | |
+| `order_number` | `varchar(30)` | NO | UNI | NULL | |
 | `client_token` | `varchar(64)` | YES | MUL | NULL | |
 | `client_ip` | `varchar(45)` | YES | | NULL | |
 | `customer_email` | `varchar(255)` | NO | | NULL | |
@@ -90,7 +90,7 @@ Based on `DESCRIBE` output from the live database.
 | `discount_code` | `varchar(50)` | YES | | NULL | |
 | `discount_amount` | `decimal(10,2)` | YES | | 0.00 | |
 | `final_total` | `decimal(10,2)` | NO | | NULL | |
-| `status` | `enum('new','processing','shipped','completed','cancelled')` | YES | | 'new' | |
+| `status` | `enum('new','in_progress','in_delivery','complete','cancelled')` | YES | | 'new' | |
 | `created_at` | `timestamp` | YES | | CURRENT_TIMESTAMP | |
 
 ### Table: `order_items`
@@ -124,10 +124,10 @@ Based on `DESCRIBE` output from the live database.
 3.  **`LanguageContext.tsx`**: Simple `ro/en` toggle. Translations stored in `constants.ts`.
 
 ### Key Pages
-*   **Shop (`/shop`):** Lists products. Uses `URLSearchParams` for filters (Category, Manufacturer, Protocol).
+*   **Shop (`/shop`):** Lists products. Uses `URLSearchParams` for filters (Category, Manufacturer, Protocol, Stock Status).
 *   **Checkout (`/checkout`):** Collects Billing/Shipping info. Submits payload to `/api/orders`. Generates `sm_client_token` if missing.
 *   **My Orders (`/my-orders`):** Fetches order history using the browser's `sm_client_token`.
-*   **Admin (`/admin`):** Client-side mock dashboard (currently). Needs backend auth implementation.
+*   **Admin (`/admin`):** Admin route and component exist but are currently hidden from the UI.
 
 ---
 
@@ -135,7 +135,7 @@ Based on `DESCRIBE` output from the live database.
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `GET` | `/api/products` | Accepts `category`, `manufacturer`, `protocol`, `search`, `include_inactive`. Defaults to `is_active=1`. |
+| `GET` | `/api/products` | Accepts `category`, `manufacturer`, `protocol`, `search`, `include_inactive`, `stock_status`. |
 | `GET` | `/api/products/:id` | Returns single product details. |
 | `GET` | `/api/validate-discount` | Accepts `code`. Returns discount details or 404. |
 | `GET` | `/api/my-orders` | Accepts `token`. Returns orders for that client token. |
@@ -148,21 +148,19 @@ Based on `DESCRIBE` output from the live database.
 
 ### Status
 *   [x] **Infrastructure:** Node.js + PHP Bridge (Tunnel) operational.
-*   [x] **Database:** Connection established securely (Secret in Body).
+*   [x] **Database:** Connection established securely.
 *   [x] **Frontend:** React structure complete, Responsive UI.
 *   [x] **Core Features:** Filtering, Cart, Checkout, Email Notifications.
 *   [x] **Image Handling:** Backend resolver for absolute paths implemented.
-*   [ ] **Admin:** Currently mock-only. Needs real auth and DB write endpoints.
+*   [ ] **Admin:** Currently hidden. Needs real auth and DB write endpoints.
 
 ### Recent Changelog
-*   **Updated Docs:** Refreshed DB Schema section with exact SQL structure.
-*   **Fixed HTTP Tunnel:** Moved `DB_TUNNEL_SECRET` from Request Headers to Request Body.
-*   **Image Serving:** Updated `server.js` to normalize absolute DB paths (e.g., `/home/smartmet/...`) to web URLs (`/product-images/...`) dynamically in the API response.
-*   **Frontend Cleanup:** Removed `picsum` fallback from React components to rely solely on the server-resolved images.
-*   **Email Templates:** Adjusted email max-width to 800px, added fallback text for empty notes, and fixed conditional rendering for discount lines (only displayed if value > 0). **Status: Functional**.
-*   **UI Adjustments (Contact):** Removed the support phone number display card from the Contact page as requested (input field preserved). **Status: Functional**.
-*   **UI Adjustments (Header):** Converted the top-left email address into a clickable `mailto:` link. **Status: Functional**.
-*   **Product Availability (Logic Update):** `is_active=0` completely hides product from API. `stock_status=out_of_stock` keeps product visible but hides price/cart. **Status: Functional**.
+*   **Order ID Generation:** Implemented a robust order numbering system (`ORD-YYYY-ID`) using the database auto-increment ID to guarantee uniqueness.
+*   **Order Statuses:** Aligned email status with DB. Updated DB schema to support `new`, `in_progress`, `in_delivery`, `complete`, `cancelled`. Added translations.
+*   **Email Template:** Increased font size and container width for better readability.
+*   **Shop Filters:** Added an "Availability" filter for `in_stock` and `on_request`.
+*   **Internationalization (i18n):** Performed a full-app scan and moved hardcoded strings to the translation system.
+*   **Admin Page:** Hid the admin page link and route as requested.
 
 ---
 *End of Specification.*

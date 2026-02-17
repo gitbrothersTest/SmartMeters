@@ -58,8 +58,9 @@ const MyOrders: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'new': return 'bg-blue-100 text-blue-800';
-      case 'processing': return 'bg-yellow-100 text-yellow-800';
-      case 'completed': return 'bg-green-100 text-green-800';
+      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
+      case 'in_delivery': return 'bg-purple-100 text-purple-800';
+      case 'complete': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -100,7 +101,7 @@ const MyOrders: React.FC = () => {
                   <div className="flex flex-col md:flex-row gap-4 md:gap-8 mb-4 md:mb-0">
                     <div>
                       <span className="text-xs text-gray-500 uppercase tracking-wider block mb-1">{t('orders.number')}</span>
-                      <span className="font-bold text-slate-900 text-lg">#{order.order_number}</span>
+                      <span className="font-bold text-slate-900 text-lg">{order.order_number}</span>
                     </div>
                     <div>
                       <span className="text-xs text-gray-500 uppercase tracking-wider block mb-1">{t('orders.date')}</span>
@@ -117,7 +118,7 @@ const MyOrders: React.FC = () => {
 
                   <div className="flex items-center justify-between md:justify-end gap-4 w-full md:w-auto">
                     <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${getStatusColor(order.status)}`}>
-                      {order.status}
+                      {t(`status.${order.status}`)}
                     </span>
                     {expandedOrder === order.id ? <ChevronUp className="text-gray-400" /> : <ChevronDown className="text-gray-400" />}
                   </div>

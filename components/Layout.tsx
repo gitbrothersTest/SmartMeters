@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { ShoppingCart, Menu, X, Globe, User } from 'lucide-react';
+import { ShoppingCart, Menu, X, Globe } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCart } from '../context/CartContext';
 
@@ -33,10 +33,6 @@ const Layout: React.FC = () => {
             <span className="hidden sm:inline">+40 722 000 000</span>
           </div>
           <div className="flex items-center space-x-4">
-            <Link to="/admin" className="hover:text-white flex items-center gap-1">
-                <User size={12} /> <span className="font-medium">{t('nav.admin')}</span>
-            </Link>
-            <div className="w-px h-3 bg-gray-600 mx-2"></div>
             <Link to="/my-orders" className="flex items-center gap-1 hover:text-white cursor-pointer transition-colors">
                 <span className="font-medium">{t('nav.my_orders')}</span>
             </Link>
@@ -134,22 +130,22 @@ const Layout: React.FC = () => {
             </p>
           </div>
           <div>
-            <h4 className="text-white font-semibold mb-4">Links</h4>
+            <h4 className="text-white font-semibold mb-4">{t('footer.links')}</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/shop" className="hover:text-white">Shop</Link></li>
-              <li><Link to="/about" className="hover:text-white">About</Link></li>
-              <li><Link to="/contact" className="hover:text-white">Contact</Link></li>
+              <li><Link to="/shop" className="hover:text-white">{t('nav.shop')}</Link></li>
+              <li><Link to="/about" className="hover:text-white">{t('nav.about')}</Link></li>
+              <li><Link to="/contact" className="hover:text-white">{t('nav.contact')}</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="text-white font-semibold mb-4">Support</h4>
+            <h4 className="text-white font-semibold mb-4">{t('footer.support')}</h4>
             <ul className="space-y-2 text-sm">
               <li><Link to="/terms" className="hover:text-white">{t('footer.terms')}</Link></li>
               <li><Link to="/privacy" className="hover:text-white">{t('footer.privacy')}</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="text-white font-semibold mb-4">Contact</h4>
+            <h4 className="text-white font-semibold mb-4">{t('nav.contact')}</h4>
             <p className="text-sm">București, Romania</p>
             <p className="text-sm">adrian.geanta@smartmeter.ro</p>
           </div>

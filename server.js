@@ -18,8 +18,26 @@ const logDebug = (section, message, data = null) => {
     }
 };
 
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+
 const app = express();
+app.use(helmet());
 app.use(express.json());
+
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: { error: 'Too many requests from this IP, please try again later.' }
+});
+
+const strictLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 10, // strict limit for orders and contact
+    message: { error: 'Prea multe încercări. Vă rugăm să încercați mai târziu.' }
+});
+
+app.use('/api/', apiLimiter);
 
 // Logger Middleware
 app.use((req, res, next) => {
@@ -54,7 +72,7 @@ app.use('/product-images', (req, res, next) => {
     if (path.extname(req.path)) {
         return next();
     }
-    const sku = req.path.substring(1); 
+    const sku = req.path.substring(1);
     const extensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.PNG', '.JPG', '.JPEG', '.WEBP', '.GIF'];
     let foundPath = null;
 
@@ -82,7 +100,7 @@ app.use('/product-images', (req, res, next) => {
 
 if (fs.existsSync(EXTERNAL_IMAGES_PATH)) app.use('/product-images', express.static(EXTERNAL_IMAGES_PATH));
 if (fs.existsSync(LOCAL_IMAGES_PATH)) app.use('/product-images', express.static(LOCAL_IMAGES_PATH));
-else try { fs.mkdirSync(LOCAL_IMAGES_PATH, { recursive: true }); } catch(e) {}
+else try { fs.mkdirSync(LOCAL_IMAGES_PATH, { recursive: true }); } catch (e) { }
 
 // --- DATABASE CONNECTION STRATEGY ---
 let pool;
@@ -116,10 +134,10 @@ if (useTunnel) {
         getConnection: async () => {
             return {
                 execute: async (sql, params) => pool.execute(sql, params),
-                beginTransaction: async () => {},
-                commit: async () => {},
-                rollback: async () => {},
-                release: () => {}
+                beginTransaction: async () => { },
+                commit: async () => { },
+                rollback: async () => { },
+                release: () => { }
             };
         }
     };
@@ -133,7 +151,7 @@ if (useTunnel) {
         connectionLimit: 10,
         queueLimit: 0,
         decimalNumbers: true,
-        connectTimeout: 10000 
+        connectTimeout: 10000
     });
 }
 
@@ -164,7 +182,7 @@ app.get('/api/products', async (req, res) => {
             query += ' AND (name LIKE ? OR sku LIKE ?)';
             params.push(`%${search}%`, `%${search}%`);
         }
-        
+
         if (stock_status) {
             const statuses = stock_status.split(',').filter(s => s.trim() !== '');
             if (statuses.length > 0) {
@@ -235,7 +253,7 @@ app.get('/api/order-history', async (req, res) => {
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
         const [orders] = await pool.execute(
-            'SELECT order_number, created_at, final_total FROM orders WHERE client_token = ? OR client_ip = ? ORDER BY created_at DESC', 
+            'SELECT order_number, created_at, final_total FROM orders WHERE client_token = ? OR client_ip = ? ORDER BY created_at DESC',
             [token || null, ip]
         );
 
@@ -258,15 +276,15 @@ app.get('/api/order-details/:order_number', async (req, res) => {
         const { order_number } = req.params;
         const [orders] = await pool.execute('SELECT * FROM orders WHERE order_number = ?', [order_number]);
         if (orders.length === 0) return res.status(404).json({ error: 'Comanda nu a fost gasita' });
-        
+
         const order = orders[0];
         const [items] = await pool.execute('SELECT * FROM order_items WHERE order_id = ?', [order.id]);
         order.items = items;
-        
+
         try {
-            if(typeof order.billing_details === 'string') order.billing_details = JSON.parse(order.billing_details);
-            if(typeof order.shipping_details === 'string') order.shipping_details = JSON.parse(order.shipping_details);
-        } catch(e) {}
+            if (typeof order.billing_details === 'string') order.billing_details = JSON.parse(order.billing_details);
+            if (typeof order.shipping_details === 'string') order.shipping_details = JSON.parse(order.shipping_details);
+        } catch (e) { }
 
         res.json(order);
     } catch (err) {
@@ -276,7 +294,7 @@ app.get('/api/order-details/:order_number', async (req, res) => {
 
 
 // API: Create Order
-app.post('/api/orders', async (req, res) => {
+app.post('/api/orders', strictLimiter, async (req, res) => {
     const { email, billing, shipping, items, totals, order_notes, clientToken } = req.body;
     const tempOrderNumber = 'PENDING-' + Date.now();
 
@@ -304,7 +322,7 @@ app.post('/api/orders', async (req, res) => {
             }
 
             await conn.commit();
-            
+
             sendOrderEmail(finalOrderNumber, req.body).catch(err => console.error("Email error:", err));
             res.status(201).json({ success: true, orderNumber: finalOrderNumber, message: 'Comanda a fost înregistrată.' });
 
@@ -320,7 +338,7 @@ app.post('/api/orders', async (req, res) => {
 });
 
 // API: Contact
-app.post('/api/contact', async (req, res) => {
+app.post('/api/contact', strictLimiter, async (req, res) => {
     try {
         const { name, email, phone, message } = req.body;
         if (!name || !email || !message) return res.status(400).json({ error: 'Toate câmpurile sunt obligatorii.' });
@@ -328,14 +346,14 @@ app.post('/api/contact', async (req, res) => {
         const transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST, port: 465, secure: true,
             auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-            tls: { rejectUnauthorized: false }
+            tls: { rejectUnauthorized: process.env.NODE_ENV === 'production' }
         });
 
         const mailOptions = {
             from: `"SmartMeter Contact" <${process.env.SMTP_USER}>`,
             to: 'adrian.geanta@smartmeter.ro, office.git.brothers@gmail.com',
             replyTo: email, subject: `Mesaj Contact: ${name}`,
-            html: `<div style="font-size: 18px;"><p>Nume: ${name}</p><p>Email: ${email}</p><p>Telefon: ${phone||'N/A'}</p><p>Mesaj:</p><blockquote>${message.replace(/\n/g, '<br>')}</blockquote></div>`
+            html: `<div style="font-size: 18px;"><p>Nume: ${name}</p><p>Email: ${email}</p><p>Telefon: ${phone || 'N/A'}</p><p>Mesaj:</p><blockquote>${message.replace(/\n/g, '<br>')}</blockquote></div>`
         };
 
         await transporter.sendMail(mailOptions);
@@ -349,15 +367,15 @@ app.post('/api/contact', async (req, res) => {
 // ... rest of the file (sendOrderEmail, static serving, etc)
 async function sendOrderEmail(orderNumber, data) {
     const { items, billing, shipping, totals, email, order_notes } = data;
-    
+
     const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST, port: 465, secure: true,
         auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-        tls: { rejectUnauthorized: false }
+        tls: { rejectUnauthorized: process.env.NODE_ENV === 'production' }
     });
 
     const baseFontSize = "18px";
-    
+
     const productsHtml = items.map((item) => `
         <tr style="border-bottom: 1px solid #f1f5f9;">
             <td style="padding: 12px;"><div style="font-weight: bold; color: #0f172a; font-size: ${baseFontSize};">${item.name}</div><div style="font-size: 14px; color: #94a3b8;">SKU: ${item.sku}</div></td>

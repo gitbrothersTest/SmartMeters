@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { ShoppingCart, Menu, X, Globe } from 'lucide-react';
+import Logo from './Logo';
 import { useLanguage } from '../context/LanguageContext';
 import { useCart } from '../context/CartContext';
 
@@ -48,10 +49,8 @@ const Layout: React.FC = () => {
         <header className="bg-white">
           <div className="container mx-auto px-4 py-4 flex justify-between items-center">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-primary rounded flex items-center justify-center text-accent font-bold text-xl">
-                SM
-              </div>
+            <Link to="/" className="flex items-center gap-3">
+              <Logo />
               <div className="flex flex-col">
                 <span className="text-xl font-bold text-primary tracking-tight">SmartMeter.ro</span>
                 <span className="text-xs text-gray-500 uppercase tracking-widest hidden sm:block">Industrial Metering</span>

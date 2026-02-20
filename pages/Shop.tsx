@@ -21,7 +21,7 @@ const Shop: React.FC = () => {
       // Availability Checkboxes: Default both checked if URL param missing, else parse URL
       stockStatus: searchParams.get('stockStatus') 
         ? searchParams.get('stockStatus')!.split(',') 
-        : ['in_stock', 'on_request']
+        : ['in_stock', 'on_request', 'out_of_stock']
   });
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,7 +34,7 @@ const Shop: React.FC = () => {
       const prot = searchParams.get('protocol') || 'ALL';
       const stock = searchParams.get('stockStatus') 
         ? searchParams.get('stockStatus')!.split(',') 
-        : ['in_stock', 'on_request'];
+        : ['in_stock', 'on_request', 'out_of_stock'];
       
       setTempFilters({ category: cat, manufacturer: man, protocol: prot, stockStatus: stock });
       
@@ -192,6 +192,15 @@ const Shop: React.FC = () => {
                             className="text-accent focus:ring-accent rounded"
                         />
                         <span className="text-sm">{t('product.stock_request')}</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            checked={tempFilters.stockStatus.includes('out_of_stock')}
+                            onChange={() => handleStockChange('out_of_stock')}
+                            className="text-accent focus:ring-accent rounded"
+                        />
+                        <span className="text-sm">{t('product.out_of_stock')}</span>
                     </label>
                 </div>
               </div>

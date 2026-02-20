@@ -230,6 +230,14 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     'status.in_delivery': 'În curs de livrare',
     'status.complete': 'Completă',
     'status.cancelled': 'Anulată',
+    'home.featured': 'Produse Recomandate',
+    'home.see_all': 'Vezi toate',
+    'home.badge_b2b': 'Focus B2B',
+    'home.badge_b2b_desc': 'Soluții dedicate pentru companii și ingineri.',
+    'home.badge_support': 'Suport Tehnic',
+    'home.badge_support_desc': 'Consiliere expertă privind integrarea protocoalelor (Modbus, M-Bus).',
+    'home.badge_shipping': 'Livrare Rapidă',
+    'home.badge_shipping_desc': 'Produsele din stoc se livrează în 24 de ore.',
   },
   en: {
     'nav.home': 'Home',
@@ -331,5 +339,13 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     'status.in_delivery': 'In Delivery',
     'status.complete': 'Complete',
     'status.cancelled': 'Cancelled',
+    'home.featured': 'Featured Products',
+    'home.see_all': 'See all',
+    'home.badge_b2b': 'B2B Focused',
+    'home.badge_b2b_desc': 'Dedicated solutions for companies and engineers.',
+    'home.badge_support': 'Technical Support',
+    'home.badge_support_desc': 'Expert advice on protocol integration (Modbus, M-Bus).',
+    'home.badge_shipping': 'Fast Shipping',
+    'home.badge_shipping_desc': 'Stock products shipped within 24 hours.',
   }
 };

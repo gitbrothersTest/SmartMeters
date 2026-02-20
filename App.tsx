@@ -34,8 +34,6 @@ function App() {
                 <Route path="about" element={<About />} />
                 <Route path="terms" element={<Terms />} />
                 <Route path="privacy" element={<Privacy />} />
-                {/* Admin route is hidden for now */}
-                {/* <Route path="admin" element={<Admin />} /> */}
               </Route>
             </Routes>
           </HashRouter>

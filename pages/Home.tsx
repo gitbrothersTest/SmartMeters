@@ -9,7 +9,7 @@ import { ProductCategory } from '../types';
 const Home: React.FC = () => {
   const { t } = useLanguage();
   const { products } = useProducts();
-  
+
   // Featured products (take first 3)
   const featuredProducts = products.slice(0, 3);
 
@@ -33,8 +33,8 @@ const Home: React.FC = () => {
             <p className="text-lg md:text-xl text-gray-300 mb-8 max-w-2xl">
               {t('hero.subtitle')}
             </p>
-            <Link 
-              to="/shop" 
+            <Link
+              to="/shop"
               className="inline-flex items-center gap-2 bg-accent hover:bg-accent-hover text-white font-bold py-3 px-8 rounded transition-all transform hover:translate-x-1"
             >
               {t('hero.cta')} <ArrowRight size={20} />
@@ -48,8 +48,8 @@ const Home: React.FC = () => {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {categories.map((cat) => (
-              <Link 
-                key={cat.id} 
+              <Link
+                key={cat.id}
                 to={`/shop?category=${cat.id}`}
                 className="group p-8 border border-gray-100 rounded-xl hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col items-center text-center bg-gray-50 hover:bg-white"
               >
@@ -68,14 +68,14 @@ const Home: React.FC = () => {
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-end mb-12">
             <div>
-              <h2 className="text-3xl font-bold text-slate-900">Featured Products</h2>
+              <h2 className="text-3xl font-bold text-slate-900">{t('home.featured')}</h2>
               <div className="h-1 w-20 bg-accent mt-2 rounded"></div>
             </div>
             <Link to="/shop" className="text-accent hover:text-primary font-medium flex items-center gap-1">
-              See all <ArrowRight size={16} />
+              {t('home.see_all')} <ArrowRight size={16} />
             </Link>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {featuredProducts.map(product => (
               <ProductCard key={product.id} product={product} />
@@ -87,18 +87,18 @@ const Home: React.FC = () => {
       {/* Trust Badges */}
       <section className="py-12 bg-white border-t border-gray-100">
         <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div>
-                <h4 className="font-bold text-primary mb-2">B2B Focused</h4>
-                <p className="text-sm text-gray-500">Dedicated solutions for companies and engineers.</p>
-            </div>
-            <div>
-                <h4 className="font-bold text-primary mb-2">Technical Support</h4>
-                <p className="text-sm text-gray-500">Expert advice on protocol integration (Modbus, M-Bus).</p>
-            </div>
-            <div>
-                <h4 className="font-bold text-primary mb-2">Fast Shipping</h4>
-                <p className="text-sm text-gray-500">Stock products shipped within 24 hours.</p>
-            </div>
+          <div>
+            <h4 className="font-bold text-primary mb-2">{t('home.badge_b2b')}</h4>
+            <p className="text-sm text-gray-500">{t('home.badge_b2b_desc')}</p>
+          </div>
+          <div>
+            <h4 className="font-bold text-primary mb-2">{t('home.badge_support')}</h4>
+            <p className="text-sm text-gray-500">{t('home.badge_support_desc')}</p>
+          </div>
+          <div>
+            <h4 className="font-bold text-primary mb-2">{t('home.badge_shipping')}</h4>
+            <p className="text-sm text-gray-500">{t('home.badge_shipping_desc')}</p>
+          </div>
         </div>
       </section>
     </div>

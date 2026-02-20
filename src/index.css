@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+/* ── Custom Theme Tokens ── */
+@theme {
+  --color-primary: #0f172a;
+  --color-primary-light: #334155;
+  --color-accent: #059669;
+  --color-accent-hover: #047857;
+}
+
+/* ── Utility: Hidden scrollbar ── */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

@@ -30,7 +30,7 @@ const Layout: React.FC = () => {
             <a href="mailto:adrian.geanta@smartmeter.ro" className="mr-4 hover:text-white transition-colors">
               adrian.geanta@smartmeter.ro
             </a>
-            <span className="hidden sm:inline">+40 722 000 000</span>
+            <span className="hidden sm:inline">+40 077 5353 856</span>
           </div>
           <div className="flex items-center space-x-4">
             <Link to="/my-orders" className="flex items-center gap-1 hover:text-white cursor-pointer transition-colors">

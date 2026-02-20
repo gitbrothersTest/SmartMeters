@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Mail, MapPin, CheckCircle, Send } from 'lucide-react';
+import { Mail, MapPin, Phone, CheckCircle, Send } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 // STRICTLY retrieved from env
@@ -89,6 +89,22 @@ const Contact: React.FC = () => {
                 </a>
               </p>
               <p className="text-gray-500 text-sm mt-2">Trimite-ne cererile tale de ofertă.</p>
+            </div>
+          </div>
+
+          {/* Phone Info */}
+          <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 flex items-start gap-4">
+            <div className="bg-blue-50 p-3 rounded-full text-primary">
+              <Phone size={24} />
+            </div>
+            <div>
+              <h3 className="font-bold text-lg mb-1">Telefon</h3>
+              <p className="text-gray-600">
+                <a href="tel:+400775353856" className="hover:text-accent hover:underline transition-colors">
+                    077 5353 856
+                </a>
+              </p>
+              <p className="text-gray-500 text-sm mt-2">Contactează-ne pentru suport tehnic sau vânzări.</p>
             </div>
           </div>
 

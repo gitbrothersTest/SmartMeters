@@ -22,7 +22,10 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
-app.use(helmet());
+// Disable default CSP to allow Tailwind CDN and external imports
+app.use(helmet({
+    contentSecurityPolicy: false,
+}));
 app.use(express.json());
 
 const apiLimiter = rateLimit({
